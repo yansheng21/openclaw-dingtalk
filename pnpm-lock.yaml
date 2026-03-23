@@ -239,6 +239,14 @@ importers:
         specifier: 0.1.0
         version: 0.1.0
 
+  apps/admin-console: {}
+
+  apps/control-api: {}
+
+  apps/jobs: {}
+
+  apps/runtime-api: {}
+
   extensions/acpx:
     dependencies:
       acpx:
@@ -319,6 +327,8 @@ importers:
         specifier: 1.58.2
         version: 1.58.2
 
+  extensions/dingtalk-enterprise: {}
+
   extensions/discord:
     dependencies:
       '@buape/carbon':
@@ -389,6 +399,8 @@ importers:
   extensions/huggingface: {}
 
   extensions/imessage: {}
+
+  extensions/internal-api-tools: {}
 
   extensions/irc:
     dependencies:
@@ -531,6 +543,8 @@ importers:
         version: link:../..
 
   extensions/nvidia: {}
+
+  extensions/oa-tools: {}
 
   extensions/ollama: {}
 
@@ -696,17 +710,35 @@ importers:
         specifier: workspace:*
         version: link:../..
 
+  packages/approval-service: {}
+
+  packages/audit-service: {}
+
   packages/clawdbot:
     dependencies:
       openclaw:
         specifier: workspace:*
         version: link:../..
 
+  packages/database: {}
+
+  packages/identity-service: {}
+
+  packages/model-registry: {}
+
   packages/moltbot:
     dependencies:
       openclaw:
         specifier: workspace:*
         version: link:../..
+
+  packages/policy-engine: {}
+
+  packages/runtime-bridge: {}
+
+  packages/shared-config: {}
+
+  packages/shared-types: {}
 
   ui:
     dependencies:
