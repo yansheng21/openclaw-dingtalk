@@ -18,7 +18,7 @@ describe("resolveAgentRoute", () => {
       guildId: "g1",
     });
 
-  test("defaults to main/default when no bindings exist", () => {
+  test("defaults to isolated DM sessions when dmScope is unset", () => {
     const cfg: OpenClawConfig = {};
     const route = resolveAgentRoute({
       cfg,
@@ -28,8 +28,8 @@ describe("resolveAgentRoute", () => {
     });
     expect(route.agentId).toBe("main");
     expect(route.accountId).toBe("default");
-    expect(route.sessionKey).toBe("agent:main:main");
-    expect(route.lastRoutePolicy).toBe("main");
+    expect(route.sessionKey).toBe("agent:main:whatsapp:direct:+15551234567");
+    expect(route.lastRoutePolicy).toBe("session");
     expect(route.matchedBy).toBe("default");
   });
 
@@ -151,7 +151,7 @@ describe("resolveAgentRoute", () => {
       peer: { kind: "direct", id: "+1000" },
     });
     expect(route.agentId).toBe("a");
-    expect(route.sessionKey).toBe("agent:a:main");
+    expect(route.sessionKey).toBe("agent:a:whatsapp:direct:+1000");
     expect(route.matchedBy).toBe("binding.peer");
   });
 
@@ -178,7 +178,7 @@ describe("resolveAgentRoute", () => {
     };
     const route = resolveDiscordGuildRoute(cfg);
     expect(route.agentId).toBe("chan");
-    expect(route.sessionKey).toBe("agent:chan:discord:channel:c1");
+    expect(route.sessionKey).toBe("agent:chan:discord:default:channel:c1");
     expect(route.matchedBy).toBe("binding.peer");
   });
 
@@ -190,7 +190,7 @@ describe("resolveAgentRoute", () => {
       accountId: "default",
       peer: { kind: "channel", id: 1468834856187203680n as unknown as string },
     });
-    expect(route.sessionKey).toBe("agent:main:discord:channel:1468834856187203680");
+    expect(route.sessionKey).toBe("agent:main:discord:default:channel:1468834856187203680");
   });
 
   test("guild binding wins over account binding when peer not bound", () => {
@@ -405,7 +405,7 @@ describe("resolveAgentRoute", () => {
       peer: { kind: "direct", id: "+1000" },
     });
     expect(route.agentId).toBe("home");
-    expect(route.sessionKey).toBe("agent:home:main");
+    expect(route.sessionKey).toBe("agent:home:whatsapp:direct:+1000");
   });
 });
 
@@ -433,6 +433,36 @@ test("dmScope=per-account-channel-peer uses default accountId when not provided"
     peer: { kind: "direct", id: "7550356539" },
   });
   expect(route.sessionKey).toBe("agent:main:telegram:default:direct:7550356539");
+});
+
+test("channel conversations isolate sessions per account when accountId differs", () => {
+  const cfg: OpenClawConfig = {};
+  const routeA = resolveAgentRoute({
+    cfg,
+    channel: "dingtalk-connector",
+    accountId: "alpha",
+    peer: { kind: "channel", id: "group-1" },
+  });
+  const routeB = resolveAgentRoute({
+    cfg,
+    channel: "dingtalk-connector",
+    accountId: "beta",
+    peer: { kind: "channel", id: "group-1" },
+  });
+  expect(routeA.sessionKey).toBe("agent:main:dingtalk-connector:alpha:channel:group-1");
+  expect(routeB.sessionKey).toBe("agent:main:dingtalk-connector:beta:channel:group-1");
+  expect(routeA.sessionKey).not.toBe(routeB.sessionKey);
+});
+
+test("channel conversations use default account bucket when accountId is missing", () => {
+  const cfg: OpenClawConfig = {};
+  const route = resolveAgentRoute({
+    cfg,
+    channel: "dingtalk-connector",
+    accountId: null,
+    peer: { kind: "channel", id: "group-1" },
+  });
+  expect(route.sessionKey).toBe("agent:main:dingtalk-connector:default:channel:group-1");
 });
 
 describe("parentPeer binding inheritance (thread support)", () => {

@@ -37,7 +37,8 @@ const STABLE_VERSION_REGEX = /^(?<year>\d{4})\.(?<month>[1-9]\d?)\.(?<day>[1-9]\
 const BETA_VERSION_REGEX =
   /^(?<year>\d{4})\.(?<month>[1-9]\d?)\.(?<day>[1-9]\d?)-beta\.(?<beta>[1-9]\d*)$/;
 const CORRECTION_TAG_REGEX = /^(?<base>\d{4}\.[1-9]\d?\.[1-9]\d?)-(?<correction>[1-9]\d*)$/;
-const EXPECTED_REPOSITORY_URL = "https://github.com/openclaw/openclaw";
+const EXPECTED_PACKAGE_NAME = "openclaw-dingtalk";
+const EXPECTED_REPOSITORY_URL = "https://github.com/yansheng21/openclaw-dingtalk";
 const MAX_CALVER_DISTANCE_DAYS = 2;
 
 function normalizeRepoUrl(value: unknown): string {
@@ -173,8 +174,10 @@ export function collectReleasePackageMetadataErrors(pkg: PackageJson): string[] 
   );
   const errors: string[] = [];
 
-  if (pkg.name !== "openclaw") {
-    errors.push(`package.json name must be "openclaw"; found "${pkg.name ?? ""}".`);
+  if (pkg.name !== EXPECTED_PACKAGE_NAME) {
+    errors.push(
+      `package.json name must be "${EXPECTED_PACKAGE_NAME}"; found "${pkg.name ?? ""}".`,
+    );
   }
   if (!pkg.description?.trim()) {
     errors.push("package.json description must be non-empty.");
@@ -192,6 +195,11 @@ export function collectReleasePackageMetadataErrors(pkg: PackageJson): string[] 
   if (pkg.bin?.openclaw !== "openclaw.mjs") {
     errors.push(
       `package.json bin.openclaw must be "openclaw.mjs"; found "${pkg.bin?.openclaw ?? ""}".`,
+    );
+  }
+  if (pkg.bin?.dingclaw !== "openclaw.mjs") {
+    errors.push(
+      `package.json bin.dingclaw must be "openclaw.mjs"; found "${pkg.bin?.dingclaw ?? ""}".`,
     );
   }
   if (pkg.peerDependencies?.["node-llama-cpp"] !== "3.16.2") {

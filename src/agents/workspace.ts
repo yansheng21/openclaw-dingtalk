@@ -260,8 +260,78 @@ async function readWorkspaceSetupStateForDir(dir: string): Promise<WorkspaceSetu
   return await readWorkspaceSetupState(statePath);
 }
 
+async function hasWorkspaceUserContent(dir: string): Promise<boolean> {
+  const indicators = [
+    path.join(dir, "memory"),
+    path.join(dir, DEFAULT_MEMORY_FILENAME),
+    path.join(dir, ".git"),
+  ];
+  for (const indicator of indicators) {
+    try {
+      await fs.access(indicator);
+      return true;
+    } catch {
+      // continue
+    }
+  }
+  return false;
+}
+
+async function detectLegacyWorkspaceSetupCompleted(dir: string): Promise<boolean> {
+  const identityPath = path.join(dir, DEFAULT_IDENTITY_FILENAME);
+  const userPath = path.join(dir, DEFAULT_USER_FILENAME);
+  try {
+    const [identityContent, userContent, identityTemplate, userTemplate, userContentExists] =
+      await Promise.all([
+        fs.readFile(identityPath, "utf-8"),
+        fs.readFile(userPath, "utf-8"),
+        loadTemplate(DEFAULT_IDENTITY_FILENAME),
+        loadTemplate(DEFAULT_USER_FILENAME),
+        hasWorkspaceUserContent(dir),
+      ]);
+    return (
+      identityContent !== identityTemplate ||
+      userContent !== userTemplate ||
+      userContentExists
+    );
+  } catch {
+    return false;
+  }
+}
+
 export async function isWorkspaceSetupCompleted(dir: string): Promise<boolean> {
-  const state = await readWorkspaceSetupStateForDir(dir);
+  const resolvedDir = resolveUserPath(dir);
+  const statePath = resolveWorkspaceStatePath(resolvedDir);
+  let state = await readWorkspaceSetupState(statePath);
+  let stateDirty = false;
+  const markState = (next: Partial<WorkspaceSetupState>) => {
+    state = { ...state, ...next };
+    stateDirty = true;
+  };
+  const nowIso = () => new Date().toISOString();
+
+  if (typeof state.setupCompletedAt === "string" && state.setupCompletedAt.trim().length > 0) {
+    return true;
+  }
+
+  const bootstrapPath = path.join(resolvedDir, DEFAULT_BOOTSTRAP_FILENAME);
+  const bootstrapExists = await fileExists(bootstrapPath);
+  if (!state.bootstrapSeededAt && bootstrapExists) {
+    markState({ bootstrapSeededAt: nowIso() });
+  }
+  if (!state.setupCompletedAt && state.bootstrapSeededAt && !bootstrapExists) {
+    markState({ setupCompletedAt: nowIso() });
+  }
+  if (!state.bootstrapSeededAt && !state.setupCompletedAt && !bootstrapExists) {
+    const legacySetupCompleted = await detectLegacyWorkspaceSetupCompleted(resolvedDir);
+    if (legacySetupCompleted) {
+      markState({ setupCompletedAt: nowIso() });
+    }
+  }
+
+  if (stateDirty) {
+    await writeWorkspaceSetupState(statePath, state);
+  }
   return typeof state.setupCompletedAt === "string" && state.setupCompletedAt.trim().length > 0;
 }
 

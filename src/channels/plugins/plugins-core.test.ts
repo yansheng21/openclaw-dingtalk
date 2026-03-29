@@ -36,7 +36,11 @@ import {
 } from "../../test-utils/channel-plugins.js";
 import { withEnvAsync } from "../../test-utils/env.js";
 import { INTERNAL_MESSAGE_CHANNEL } from "../../utils/message-channel.js";
-import { getChannelPluginCatalogEntry, listChannelPluginCatalogEntries } from "./catalog.js";
+import {
+  buildChannelUiCatalog,
+  getChannelPluginCatalogEntry,
+  listChannelPluginCatalogEntries,
+} from "./catalog.js";
 import {
   authorizeConfigWrite,
   canBypassConfigWritePolicy,
@@ -125,6 +129,37 @@ describe("channel plugin catalog", () => {
   it("lists plugin catalog entries", () => {
     const ids = listChannelPluginCatalogEntries().map((entry) => entry.id);
     expect(ids).toContain("msteams");
+  });
+
+  it("preserves extended UI metadata for the integration center", () => {
+    const catalog = buildChannelUiCatalog([
+      {
+        id: "feishu",
+        meta: {
+          id: "feishu",
+          label: "Feishu",
+          selectionLabel: "Feishu/Lark (飞书)",
+          detailLabel: "Feishu Bot",
+          docsPath: "/channels/feishu",
+          docsLabel: "feishu",
+          blurb: "Feishu integration",
+          order: 35,
+        },
+      },
+    ]);
+
+    expect(catalog.entries).toEqual([
+      expect.objectContaining({
+        id: "feishu",
+        label: "Feishu",
+        detailLabel: "Feishu Bot",
+        selectionLabel: "Feishu/Lark (飞书)",
+        docsPath: "/channels/feishu",
+        docsLabel: "feishu",
+        blurb: "Feishu integration",
+        order: 35,
+      }),
+    ]);
   });
 
   it("includes external catalog entries", () => {

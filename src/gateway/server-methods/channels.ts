@@ -1,4 +1,7 @@
-import { buildChannelUiCatalog } from "../../channels/plugins/catalog.js";
+import {
+  buildChannelUiCatalog,
+  listChannelPluginCatalogEntries,
+} from "../../channels/plugins/catalog.js";
 import { resolveChannelDefaultAccountId } from "../../channels/plugins/helpers.js";
 import {
   type ChannelId,
@@ -7,12 +10,19 @@ import {
   normalizeChannelId,
 } from "../../channels/plugins/index.js";
 import { buildChannelAccountSnapshot } from "../../channels/plugins/status.js";
-import type { ChannelAccountSnapshot, ChannelPlugin } from "../../channels/plugins/types.js";
+import type {
+  ChannelAccountSnapshot,
+  ChannelMeta,
+  ChannelPlugin,
+} from "../../channels/plugins/types.js";
+import { listChatChannels } from "../../channels/registry.js";
 import type { OpenClawConfig } from "../../config/config.js";
 import { loadConfig, readConfigFileSnapshot } from "../../config/config.js";
+import { resolveDmScope } from "../../config/dm-scope.js";
 import { getChannelActivity } from "../../infra/channel-activity.js";
 import { DEFAULT_ACCOUNT_ID } from "../../routing/session-key.js";
 import { defaultRuntime } from "../../runtime.js";
+import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import {
   ErrorCodes,
   errorShape,
@@ -29,6 +39,83 @@ type ChannelLogoutPayload = {
   cleared: boolean;
   [key: string]: unknown;
 };
+
+type ChannelUiMetaSource = {
+  id: string;
+  meta: ChannelMeta;
+};
+
+function cloneChannelMeta(meta: ChannelMeta): ChannelMeta {
+  return {
+    ...meta,
+    ...(meta.aliases ? { aliases: [...meta.aliases] } : {}),
+    ...(meta.selectionExtras ? { selectionExtras: [...meta.selectionExtras] } : {}),
+    ...(meta.preferOver ? { preferOver: [...meta.preferOver] } : {}),
+  };
+}
+
+function mergeChannelMeta(base: ChannelMeta, incoming: ChannelMeta): ChannelMeta {
+  return {
+    ...base,
+    ...incoming,
+    aliases: incoming.aliases ?? base.aliases,
+    selectionExtras: incoming.selectionExtras ?? base.selectionExtras,
+    preferOver: incoming.preferOver ?? base.preferOver,
+  };
+}
+
+function describeSessionScopeSummary(dmScope: string): string {
+  if (dmScope === "main") {
+    return "主会话";
+  }
+  if (dmScope === "per-peer") {
+    return "按私聊对象";
+  }
+  if (dmScope === "per-account-channel-peer") {
+    return "按账号+渠道+私聊对象";
+  }
+  return "按渠道+私聊对象";
+}
+
+function applyAccountSnapshotDerivedFields(params: {
+  snapshot: ChannelAccountSnapshot;
+  defaultAccountId: string;
+  dmScope: string;
+}): ChannelAccountSnapshot {
+  params.snapshot.isDefaultAccount = params.snapshot.accountId === params.defaultAccountId;
+  params.snapshot.dmScope = params.dmScope;
+  params.snapshot.sessionScopeSummary = describeSessionScopeSummary(params.dmScope);
+  return params.snapshot;
+}
+
+function resolveChannelUiCatalogSources(
+  cfg: OpenClawConfig,
+  plugins: ChannelPlugin[],
+): ChannelUiMetaSource[] {
+  const workspaceDir = resolveAgentWorkspaceDir(cfg, resolveDefaultAgentId(cfg));
+  const sources: ChannelUiMetaSource[] = [
+    ...listChatChannels().map((meta) => ({ id: meta.id, meta })),
+    ...listChannelPluginCatalogEntries({ workspaceDir }).map((entry) => ({
+      id: entry.id,
+      meta: entry.meta,
+    })),
+    ...plugins.map((plugin) => ({ id: plugin.id, meta: plugin.meta })),
+  ];
+  const merged = new Map<string, ChannelUiMetaSource>();
+  for (const source of sources) {
+    const id = source.id.trim();
+    if (!id) {
+      continue;
+    }
+    const existing = merged.get(id);
+    if (!existing) {
+      merged.set(id, { id, meta: cloneChannelMeta(source.meta) });
+      continue;
+    }
+    existing.meta = mergeChannelMeta(existing.meta, source.meta);
+  }
+  return Array.from(merged.values());
+}
 
 export async function logoutChannelAccount(params: {
   channelId: ChannelId;
@@ -129,6 +216,7 @@ export const channelsHandlers: GatewayRequestHandlers = {
       });
       const accounts: ChannelAccountSnapshot[] = [];
       const resolvedAccounts: Record<string, unknown> = {};
+      const dmScope = resolveDmScope(cfg.session?.dmScope);
       for (const accountId of accountIds) {
         const account = plugin.config.resolveAccount(cfg, accountId);
         const enabled = isAccountEnabled(plugin, account);
@@ -186,14 +274,20 @@ export const channelsHandlers: GatewayRequestHandlers = {
         if (snapshot.lastOutboundAt == null) {
           snapshot.lastOutboundAt = activity.outboundAt;
         }
-        accounts.push(snapshot);
+        accounts.push(
+          applyAccountSnapshotDerivedFields({
+            snapshot,
+            defaultAccountId,
+            dmScope,
+          }),
+        );
       }
       const defaultAccount =
         accounts.find((entry) => entry.accountId === defaultAccountId) ?? accounts[0];
       return { accounts, defaultAccountId, defaultAccount, resolvedAccounts };
     };
 
-    const uiCatalog = buildChannelUiCatalog(plugins);
+    const uiCatalog = buildChannelUiCatalog(resolveChannelUiCatalogSources(cfg, plugins));
     const payload: Record<string, unknown> = {
       ts: Date.now(),
       channelOrder: uiCatalog.order,

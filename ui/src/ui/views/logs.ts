@@ -1,7 +1,12 @@
 import { html, nothing } from "lit";
+import { t } from "../../i18n/index.ts";
 import type { LogEntry, LogLevel } from "../types.ts";
 
 const LEVELS: LogLevel[] = ["trace", "debug", "info", "warn", "error", "fatal"];
+
+function levelLabel(level: LogLevel) {
+  return t(`logsPage.levels.${level}`);
+}
 
 export type LogsProps = {
   loading: boolean;
@@ -45,24 +50,26 @@ function matchesFilter(entry: LogEntry, needle: string) {
 export function renderLogs(props: LogsProps) {
   const needle = props.filterText.trim().toLowerCase();
   const levelFiltered = LEVELS.some((level) => !props.levelFilters[level]);
+  const exportMode = needle || levelFiltered ? "filtered" : "visible";
   const filtered = props.entries.filter((entry) => {
     if (entry.level && !props.levelFilters[entry.level]) {
       return false;
     }
     return matchesFilter(entry, needle);
   });
-  const exportLabel = needle || levelFiltered ? "filtered" : "visible";
+  const exportLabel =
+    exportMode === "filtered" ? t("logsPage.exportFiltered") : t("logsPage.exportVisible");
 
   return html`
     <section class="card">
       <div class="row" style="justify-content: space-between;">
         <div>
-          <div class="card-title">Logs</div>
-          <div class="card-sub">Gateway file logs (JSONL).</div>
+          <div class="card-title">${t("logsPage.title")}</div>
+          <div class="card-sub">${t("logsPage.subtitle")}</div>
         </div>
         <div class="row" style="gap: 8px;">
           <button class="btn" ?disabled=${props.loading} @click=${props.onRefresh}>
-            ${props.loading ? "Loading…" : "Refresh"}
+            ${props.loading ? t("logsPage.loading") : t("common.refresh")}
           </button>
           <button
             class="btn"
@@ -70,25 +77,25 @@ export function renderLogs(props: LogsProps) {
             @click=${() =>
               props.onExport(
                 filtered.map((entry) => entry.raw),
-                exportLabel,
+                exportMode,
               )}
           >
-            Export ${exportLabel}
+            ${exportLabel}
           </button>
         </div>
       </div>
 
       <div class="filters" style="margin-top: 14px;">
         <label class="field" style="min-width: 220px;">
-          <span>Filter</span>
+          <span>${t("logsPage.filterLabel")}</span>
           <input
             .value=${props.filterText}
             @input=${(e: Event) => props.onFilterTextChange((e.target as HTMLInputElement).value)}
-            placeholder="Search logs"
+            placeholder=${t("logsPage.searchPlaceholder")}
           />
         </label>
         <label class="field checkbox">
-          <span>Auto-follow</span>
+          <span>${t("logsPage.autoFollow")}</span>
           <input
             type="checkbox"
             .checked=${props.autoFollow}
@@ -108,7 +115,7 @@ export function renderLogs(props: LogsProps) {
                 @change=${(e: Event) =>
                   props.onLevelToggle(level, (e.target as HTMLInputElement).checked)}
               />
-              <span>${level}</span>
+              <span>${levelLabel(level)}</span>
             </label>
           `,
         )}
@@ -116,14 +123,16 @@ export function renderLogs(props: LogsProps) {
 
       ${
         props.file
-          ? html`<div class="muted" style="margin-top: 10px;">File: ${props.file}</div>`
+          ? html`
+              <div class="muted" style="margin-top: 10px;">
+                ${t("logsPage.fileLabel")}: ${props.file}
+              </div>
+            `
           : nothing
       }
       ${
         props.truncated
-          ? html`
-              <div class="callout" style="margin-top: 10px">Log output truncated; showing latest chunk.</div>
-            `
+          ? html`<div class="callout" style="margin-top: 10px">${t("logsPage.truncated")}</div>`
           : nothing
       }
       ${
@@ -135,9 +144,7 @@ export function renderLogs(props: LogsProps) {
       <div class="log-stream" style="margin-top: 12px;" @scroll=${props.onScroll}>
         ${
           filtered.length === 0
-            ? html`
-                <div class="muted" style="padding: 12px">No log entries.</div>
-              `
+            ? html`<div class="muted" style="padding: 12px">${t("logsPage.empty")}</div>`
             : filtered.map(
                 (entry) => html`
                 <div class="log-row">

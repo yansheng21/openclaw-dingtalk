@@ -1,6 +1,9 @@
+/* @vitest-environment jsdom */
+
 import { render } from "lit";
-import { describe, expect, it, vi } from "vitest";
-import { analyzeConfigSchema, renderConfigForm } from "./views/config-form.ts";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { i18n } from "../i18n/index.ts";
+import { analyzeConfigSchema, renderConfigForm, renderNode } from "./views/config-form.ts";
 
 const rootSchema = {
   type: "object",
@@ -34,6 +37,10 @@ const rootSchema = {
 };
 
 describe("config form renderer", () => {
+  beforeEach(async () => {
+    await i18n.setLocale("en");
+  });
+
   it("renders inputs and patches values", () => {
     const onPatch = vi.fn();
     const container = document.createElement("div");
@@ -400,6 +407,144 @@ describe("config form renderer", () => {
     expect(analysis.unsupportedPaths).not.toContain("mixed");
   });
 
+  it("renders model field labels with clearer Chinese copy", async () => {
+    await i18n.setLocale("zh-CN");
+
+    const onPatch = vi.fn();
+    const container = document.createElement("div");
+    const schema = {
+      type: "object",
+      properties: {
+        models: {
+          type: "object",
+          properties: {
+            providers: {
+              type: "object",
+              additionalProperties: {
+                type: "object",
+                properties: {
+                  baseUrl: { type: "string" },
+                  api: { type: "string" },
+                  models: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        id: { type: "string" },
+                        contextWindow: { type: "number" },
+                        maxTokens: { type: "number" },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        agents: {
+          type: "object",
+          properties: {
+            defaults: {
+              type: "object",
+              properties: {
+                model: {
+                  type: "object",
+                  properties: {
+                    primary: { type: "string" },
+                    fallbacks: { type: "array", items: { type: "string" } },
+                  },
+                },
+                models: {
+                  type: "object",
+                  additionalProperties: {
+                    type: "object",
+                    properties: {
+                      params: {
+                        type: "object",
+                        properties: {
+                          reasoningEffort: { type: "string" },
+                        },
+                      },
+                    },
+                  },
+                },
+                thinkingDefault: { type: "string" },
+              },
+            },
+          },
+        },
+        tools: {
+          type: "object",
+          properties: {
+            exec: {
+              type: "object",
+              properties: {
+                applyPatch: {
+                  type: "object",
+                  properties: {
+                    allowModels: {
+                      type: "array",
+                      items: { type: "string" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+    const analysis = analyzeConfigSchema(schema);
+
+    render(
+      renderConfigForm({
+        schema: analysis.schema,
+        uiHints: {},
+        unsupportedPaths: analysis.unsupportedPaths,
+        value: {
+          models: {
+            providers: {
+              relay: {
+                baseUrl: "https://api.xairouter.com/v1",
+                api: "openai-completions",
+                models: [{ id: "gpt-5.4", contextWindow: 16000, maxTokens: 4096 }],
+              },
+            },
+          },
+          agents: {
+            defaults: {
+              model: {
+                primary: "relay/gpt-5.4",
+                fallbacks: ["relay/gpt-5.4-mini"],
+              },
+              models: {
+                "relay/gpt-5.4": {
+                  params: { reasoningEffort: "xhigh" },
+                },
+              },
+              thinkingDefault: "xhigh",
+            },
+          },
+          tools: {
+            exec: {
+              applyPatch: {
+                allowModels: ["relay/gpt-5.4"],
+              },
+            },
+          },
+        },
+        onPatch,
+      }),
+      container,
+    );
+
+    expect(container.textContent).toContain("主模型");
+    expect(container.textContent).toContain("回退模型");
+    expect(container.textContent).toContain("默认推理强度");
+    expect(container.textContent).toContain("允许 apply_patch 的模型");
+    expect(container.textContent).toContain("上下文窗口");
+  });
+
   it("supports nullable types", () => {
     const schema = {
       type: "object",
@@ -463,5 +608,323 @@ describe("config form renderer", () => {
     expect(removeButton).not.toBeNull();
     removeButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(onPatch).toHaveBeenCalledWith(["accounts"], {});
+  });
+
+  it("renders config form chrome in simplified Chinese", async () => {
+    await i18n.setLocale("zh-CN");
+
+    const onPatch = vi.fn();
+    const container = document.createElement("div");
+    const schema = {
+      type: "object",
+      properties: {
+        gateway: {
+          type: "object",
+          properties: {
+            token: { type: "string" },
+          },
+        },
+        allowFrom: {
+          type: "array",
+          items: { type: "string" },
+        },
+        slack: {
+          type: "object",
+          additionalProperties: {
+            type: "string",
+          },
+        },
+      },
+    };
+    const analysis = analyzeConfigSchema(schema);
+
+    render(
+      renderConfigForm({
+        schema: analysis.schema,
+        uiHints: {},
+        unsupportedPaths: analysis.unsupportedPaths,
+        value: { allowFrom: [], slack: {} },
+        activeSection: "gateway",
+        onPatch,
+      }),
+      container,
+    );
+
+    expect(container.textContent).toContain("令牌");
+    expect(container.textContent).not.toContain("网关服务、端口、认证与绑定设置。");
+
+    const chromeContainer = document.createElement("div");
+    render(
+      renderConfigForm({
+        schema: analysis.schema,
+        uiHints: {},
+        unsupportedPaths: analysis.unsupportedPaths,
+        value: { allowFrom: [], slack: {} },
+        onPatch,
+      }),
+      chromeContainer,
+    );
+
+    expect(chromeContainer.textContent).toContain("0 项");
+    expect(chromeContainer.textContent).toContain("添加");
+    expect(chromeContainer.textContent).toContain("自定义条目");
+    expect(chromeContainer.textContent).toContain("暂无自定义条目。");
+  });
+
+  it("groups common gateway settings into guided cards", async () => {
+    await i18n.setLocale("zh-CN");
+
+    const onPatch = vi.fn();
+    const container = document.createElement("div");
+    const schema = {
+      type: "object",
+      properties: {
+        gateway: {
+          type: "object",
+          properties: {
+            controlUi: {
+              type: "object",
+              properties: {
+                enabled: { type: "boolean" },
+              },
+            },
+            auth: {
+              type: "object",
+              properties: {
+                token: { type: "string" },
+              },
+            },
+            port: { type: "number" },
+            tls: {
+              type: "object",
+              properties: {
+                enabled: { type: "boolean" },
+              },
+            },
+          },
+        },
+      },
+    };
+    const analysis = analyzeConfigSchema(schema);
+
+    render(
+      renderConfigForm({
+        schema: analysis.schema,
+        uiHints: {},
+        unsupportedPaths: analysis.unsupportedPaths,
+        value: { gateway: { port: 8080 } },
+        activeSection: "gateway",
+        onPatch,
+      }),
+      container,
+    );
+
+    expect(container.textContent).toContain("访问与控制台");
+    expect(container.textContent).toContain("运行与网络");
+    expect(container.textContent).toContain("控制台界面");
+    expect(container.textContent).toContain("网关认证");
+    expect(container.textContent).toContain("网关端口");
+    expect(container.querySelectorAll(".config-subsection-card").length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("keeps english help visible when chinese override is missing", async () => {
+    await i18n.setLocale("zh-CN");
+
+    const onPatch = vi.fn();
+    const container = document.createElement("div");
+    render(
+      renderNode({
+        schema: {
+          type: "string",
+          title: "Custom Field",
+          description: "Use this field to tune an experimental runtime flag.",
+        },
+        value: "",
+        path: ["custom", "flag"],
+        hints: {},
+        unsupported: new Set(),
+        disabled: false,
+        onPatch,
+      }),
+      container,
+    );
+
+    expect(container.textContent).toContain("Use this field to tune an experimental runtime flag.");
+  });
+
+  it("marks json fallback fields as advanced config", async () => {
+    await i18n.setLocale("zh-CN");
+
+    const onPatch = vi.fn();
+    const container = document.createElement("div");
+    render(
+      renderNode({
+        schema: {
+          anyOf: [{ type: "string" }, { type: "object", properties: {} }],
+          title: "Mixed Config",
+        },
+        value: { enabled: true },
+        path: ["mixed"],
+        hints: {},
+        unsupported: new Set(),
+        disabled: false,
+        onPatch,
+      }),
+      container,
+    );
+
+    expect(container.querySelector(".cfg-field--advanced")).not.toBeNull();
+    expect(container.textContent).toContain("高级字段");
+  });
+
+  it("localizes wildcard channel policy fields in simplified Chinese", async () => {
+    await i18n.setLocale("zh-CN");
+
+    const onPatch = vi.fn();
+    const container = document.createElement("div");
+    render(
+      renderNode({
+        schema: {
+          type: "string",
+          enum: ["pairing", "allowlist", "open", "disabled"],
+        },
+        value: "pairing",
+        path: ["channels", "discord", "dmPolicy"],
+        hints: {},
+        unsupported: new Set(),
+        disabled: false,
+        onPatch,
+      }),
+      container,
+    );
+
+    expect(container.textContent).toContain("私信接入策略");
+    expect(container.textContent).toContain("配对后允许");
+    expect(container.textContent).toContain("白名单");
+    expect(container.textContent).toContain("开放");
+    expect(container.textContent).toContain("禁用");
+  });
+
+  it("localizes wildcard account secrets and redacted guidance in simplified Chinese", async () => {
+    await i18n.setLocale("zh-CN");
+
+    const onPatch = vi.fn();
+    const container = document.createElement("div");
+    render(
+      renderNode({
+        schema: {
+          type: "string",
+        },
+        value: "stored-secret",
+        path: ["channels", "dingtalk-enterprise", "accounts", "default", "clientSecret"],
+        hints: {},
+        unsupported: new Set(),
+        disabled: false,
+        onPatch,
+      }),
+      container,
+    );
+
+    expect(container.textContent).toContain("客户端密钥");
+    expect(container.textContent).toContain("该值会在本地控制台中直接显示");
+
+    const input = container.querySelector<HTMLInputElement>("input.cfg-input");
+    expect(input).not.toBeNull();
+    expect(input?.placeholder).toContain("敏感值已隐藏");
+    expect(input?.readOnly).toBe(true);
+  });
+
+  it("localizes account allowFrom fields in simplified Chinese", async () => {
+    await i18n.setLocale("zh-CN");
+
+    const onPatch = vi.fn();
+    const container = document.createElement("div");
+    render(
+      renderNode({
+        schema: {
+          type: "array",
+          items: { type: "string" },
+        },
+        value: ["staff_1"],
+        path: ["channels", "dingtalk-connector", "accounts", "default", "allowFrom"],
+        hints: {},
+        unsupported: new Set(),
+        disabled: false,
+        onPatch,
+      }),
+      container,
+    );
+
+    expect(container.textContent).toContain("允许来源");
+    expect(container.textContent).not.toContain("Allow From");
+  });
+
+  it("does not expose redacted sentinel values when a sensitive field is revealed", async () => {
+    await i18n.setLocale("zh-CN");
+
+    const onPatch = vi.fn();
+    const container = document.createElement("div");
+    render(
+      renderNode({
+        schema: {
+          type: "string",
+        },
+        value: "__OPENCLAW_REDACTED__",
+        path: ["channels", "dingtalk-connector", "accounts", "default", "clientSecret"],
+        hints: {},
+        unsupported: new Set(),
+        disabled: false,
+        isSensitivePathRevealed: () => true,
+        onToggleSensitivePath: () => undefined,
+        onPatch,
+      }),
+      container,
+    );
+
+    const input = container.querySelector<HTMLInputElement>("input.cfg-input");
+    expect(input).not.toBeNull();
+    expect(input?.value).toBe("");
+    expect(input?.readOnly).toBe(false);
+    expect(input?.placeholder).toContain("已有值已隐藏");
+    expect(container.textContent ?? "").not.toContain("__OPENCLAW_REDACTED__");
+  });
+
+  it("localizes deep nested conversation fields in simplified Chinese", async () => {
+    await i18n.setLocale("zh-CN");
+
+    const onPatch = vi.fn();
+    const container = document.createElement("div");
+    render(
+      renderNode({
+        schema: {
+          type: "object",
+          properties: {
+            requireMention: { type: "boolean" },
+            resolveSenderNames: { type: "boolean" },
+            separateSessionByConversation: { type: "boolean" },
+            sharedMemoryAcrossConversations: { type: "boolean" },
+          },
+        },
+        value: {
+          requireMention: true,
+          resolveSenderNames: true,
+          separateSessionByConversation: true,
+          sharedMemoryAcrossConversations: false,
+        },
+        path: ["channels", "telegram", "groups", "*"],
+        hints: {},
+        unsupported: new Set(),
+        disabled: false,
+        onPatch,
+      }),
+      container,
+    );
+
+    expect(container.textContent).toContain("必须 @ 机器人");
+    expect(container.textContent).toContain("解析发送者名称");
+    expect(container.textContent).toContain("按会话分别建上下文");
+    expect(container.textContent).toContain("跨会话共享记忆");
+    expect(container.textContent).not.toContain("Resolve Sender 名称s");
+    expect(container.textContent).not.toContain("Separate 会话 By Conversation");
   });
 });

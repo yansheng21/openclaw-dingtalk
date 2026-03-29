@@ -108,11 +108,11 @@ describe("collectReleasePackageMetadataErrors", () => {
   it("validates the expected npm package metadata", () => {
     expect(
       collectReleasePackageMetadataErrors({
-        name: "openclaw",
-        description: "Multi-channel AI gateway with extensible messaging integrations",
+        name: "openclaw-dingtalk",
+        description: "DingTalk-focused OpenClaw enterprise gateway with extensible AI and channel integrations",
         license: "MIT",
-        repository: { url: "git+https://github.com/openclaw/openclaw.git" },
-        bin: { openclaw: "openclaw.mjs" },
+        repository: { url: "git+https://github.com/yansheng21/openclaw-dingtalk.git" },
+        bin: { openclaw: "openclaw.mjs", dingclaw: "openclaw.mjs" },
         peerDependencies: { "node-llama-cpp": "3.16.2" },
         peerDependenciesMeta: { "node-llama-cpp": { optional: true } },
       }),
@@ -122,11 +122,11 @@ describe("collectReleasePackageMetadataErrors", () => {
   it("requires node-llama-cpp to stay an optional peer", () => {
     expect(
       collectReleasePackageMetadataErrors({
-        name: "openclaw",
-        description: "Multi-channel AI gateway with extensible messaging integrations",
+        name: "openclaw-dingtalk",
+        description: "DingTalk-focused OpenClaw enterprise gateway with extensible AI and channel integrations",
         license: "MIT",
-        repository: { url: "git+https://github.com/openclaw/openclaw.git" },
-        bin: { openclaw: "openclaw.mjs" },
+        repository: { url: "git+https://github.com/yansheng21/openclaw-dingtalk.git" },
+        bin: { openclaw: "openclaw.mjs", dingclaw: "openclaw.mjs" },
         peerDependencies: { "node-llama-cpp": "3.16.2" },
       }),
     ).toContain('package.json peerDependenciesMeta["node-llama-cpp"].optional must be true.');

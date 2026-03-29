@@ -24,7 +24,29 @@ const createStubChannelPlugin = (params: {
   ...createChannelTestPluginBase({
     id: params.id,
     label: params.label,
-    config: { isConfigured: async () => false },
+    config: {
+      isConfigured: async (account) => Boolean((account as { configured?: boolean }).configured),
+      listAccountIds: () => ["default", "ops"],
+      defaultAccountId: () => "ops",
+      resolveAccount: (_cfg, accountId) => ({
+        accountId,
+        enabled: true,
+        configured: accountId === "ops",
+        groupPolicy: accountId === "ops" ? "allowlist" : "open",
+        requireMention: accountId !== "default",
+        groupAllowFrom: accountId === "ops" ? ["grp-1"] : [],
+        webhookPath: `/${accountId}/webhook`,
+      }),
+      inspectAccount: (_cfg, accountId) => ({
+        accountId,
+        enabled: true,
+        configured: accountId === "ops",
+        groupPolicy: accountId === "ops" ? "allowlist" : "open",
+        requireMention: accountId !== "default",
+        groupAllowFrom: accountId === "ops" ? ["grp-1"] : [],
+        webhookPath: `/${accountId}/webhook`,
+      }),
+    },
   }),
   status: {
     buildChannelSummary: async () => ({
@@ -107,6 +129,14 @@ describe("gateway server channels", () => {
     vi.stubEnv("TELEGRAM_BOT_TOKEN", undefined);
     setRegistry(defaultRegistry);
     const res = await rpcReq<{
+      channelMeta?: Array<{
+        id: string;
+        label: string;
+        detailLabel: string;
+        selectionLabel?: string;
+        docsPath?: string;
+        blurb?: string;
+      }>;
       channels?: Record<
         string,
         {
@@ -116,6 +146,20 @@ describe("gateway server channels", () => {
           lastProbeAt?: unknown;
           linked?: boolean;
         }
+      >;
+      channelDefaultAccountId?: Record<string, string>;
+      channelAccounts?: Record<
+        string,
+        Array<{
+          accountId: string;
+          isDefaultAccount?: boolean;
+          dmScope?: string;
+          sessionScopeSummary?: string;
+          groupPolicy?: string;
+          requireMention?: boolean;
+          groupAllowFrom?: string[];
+          webhookPath?: string;
+        }>
       >;
     }>(ws, "channels.status", { probe: false, timeoutMs: 2000 });
     expect(res.ok).toBe(true);
@@ -129,6 +173,40 @@ describe("gateway server channels", () => {
     expect(signal?.configured).toBe(false);
     expect(signal?.probe).toBeUndefined();
     expect(signal?.lastProbeAt).toBeNull();
+    expect(res.payload?.channelDefaultAccountId?.telegram).toBe("ops");
+    expect(res.payload?.channelAccounts?.telegram).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          accountId: "default",
+          dmScope: "per-channel-peer",
+          groupPolicy: "open",
+          isDefaultAccount: false,
+          requireMention: false,
+          sessionScopeSummary: "按渠道+私聊对象",
+          webhookPath: "/default/webhook",
+        }),
+        expect.objectContaining({
+          accountId: "ops",
+          configured: true,
+          dmScope: "per-channel-peer",
+          groupAllowFrom: ["grp-1"],
+          groupPolicy: "allowlist",
+          isDefaultAccount: true,
+          requireMention: true,
+          sessionScopeSummary: "按渠道+私聊对象",
+          webhookPath: "/ops/webhook",
+        }),
+      ]),
+    );
+    const telegramMeta = res.payload?.channelMeta?.find((entry) => entry.id === "telegram");
+    expect(telegramMeta).toMatchObject({
+      id: "telegram",
+      label: "Telegram",
+      detailLabel: "Telegram Bot",
+      selectionLabel: "Telegram",
+      docsPath: "/channels/telegram",
+      blurb: "test stub.",
+    });
   });
 
   test("channels.logout reports no session when missing", async () => {

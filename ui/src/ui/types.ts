@@ -24,6 +24,11 @@ export type ChannelUiMetaEntry = {
   id: string;
   label: string;
   detailLabel: string;
+  selectionLabel?: string;
+  docsPath?: string;
+  docsLabel?: string;
+  blurb?: string;
+  order?: number;
   systemImage?: string;
 };
 
@@ -32,6 +37,7 @@ export const CRON_CHANNEL_LAST = "last";
 export type ChannelAccountSnapshot = {
   accountId: string;
   name?: string | null;
+  displayName?: string | null;
   enabled?: boolean | null;
   configured?: boolean | null;
   linked?: boolean | null;
@@ -47,7 +53,15 @@ export type ChannelAccountSnapshot = {
   lastProbeAt?: number | null;
   mode?: string | null;
   dmPolicy?: string | null;
+  groupPolicy?: string | null;
+  dmScope?: string | null;
+  sessionScopeSummary?: string | null;
+  isDefaultAccount?: boolean | null;
+  requireMention?: boolean | null;
   allowFrom?: string[] | null;
+  groupAllowFrom?: string[] | null;
+  clientId?: string | null;
+  clientSecretConfigured?: boolean | null;
   tokenSource?: string | null;
   botTokenSource?: string | null;
   appTokenSource?: string | null;

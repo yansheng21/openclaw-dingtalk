@@ -33,7 +33,7 @@ export function startLogsPolling(host: PollingHost) {
     return;
   }
   host.logsPollInterval = window.setInterval(() => {
-    if (host.tab !== "logs") {
+    if (host.tab !== "logs" && host.tab !== "channels") {
       return;
     }
     void loadLogs(host as unknown as OpenClawApp, { quiet: true });

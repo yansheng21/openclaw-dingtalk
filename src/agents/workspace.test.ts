@@ -13,6 +13,7 @@ import {
   DEFAULT_USER_FILENAME,
   ensureAgentWorkspace,
   filterBootstrapFilesForSession,
+  isWorkspaceSetupCompleted,
   loadWorkspaceBootstrapFiles,
   resolveDefaultAgentWorkspaceDir,
   type WorkspaceBootstrapFile,
@@ -171,6 +172,33 @@ describe("ensureAgentWorkspace", () => {
       "utf-8",
     );
     expect(persisted).toContain('"setupCompletedAt": "2026-03-15T02:30:00.000Z"');
+  });
+});
+
+describe("isWorkspaceSetupCompleted", () => {
+  it("marks legacy configured workspaces as completed when state is missing", async () => {
+    const tempDir = await makeTempWorkspace("openclaw-workspace-");
+    await writeWorkspaceFile({
+      dir: tempDir,
+      name: DEFAULT_IDENTITY_FILENAME,
+      content: "# IDENTITY.md\n- Name: XiaoLong\n",
+    });
+    await writeWorkspaceFile({
+      dir: tempDir,
+      name: DEFAULT_USER_FILENAME,
+      content: "# USER.md\n- What to call them: 老板\n",
+    });
+    await fs.mkdir(path.join(tempDir, "memory"), { recursive: true });
+    await fs.writeFile(path.join(tempDir, "memory", "2026-03-28.md"), "# log\n");
+
+    await expect(isWorkspaceSetupCompleted(tempDir)).resolves.toBe(true);
+
+    const state = await readWorkspaceState(tempDir);
+    expect(state.bootstrapSeededAt).toBeUndefined();
+    expect(state.setupCompletedAt).toMatch(/\d{4}-\d{2}-\d{2}T/);
+    await expect(fs.access(path.join(tempDir, DEFAULT_BOOTSTRAP_FILENAME))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
   });
 });
 

@@ -6,6 +6,7 @@ import { loadConfig } from "../config/config.js";
 import type { OpenClawConfig } from "../config/config.js";
 import { computeBackoff, type BackoffPolicy } from "../infra/backoff.js";
 import { consumeRootOptionToken, FLAG_TERMINATOR } from "../infra/cli-root-options.js";
+import { CORE_CLI_NAMES } from "../infra/core-package.js";
 import { resolveOpenClawAgentDir } from "./agent-paths.js";
 import { lookupCachedContextTokens, MODEL_CONTEXT_TOKEN_CACHE } from "./context-cache.js";
 import { normalizeProviderId } from "./model-selection.js";
@@ -96,7 +97,7 @@ function isLikelyOpenClawCliProcess(argv: string[] = process.argv): boolean {
     .trim()
     .toLowerCase();
   return (
-    entryBasename === "openclaw" ||
+    CORE_CLI_NAMES.includes(entryBasename as (typeof CORE_CLI_NAMES)[number]) ||
     entryBasename === "openclaw.mjs" ||
     entryBasename === "entry.js" ||
     entryBasename === "entry.mjs"

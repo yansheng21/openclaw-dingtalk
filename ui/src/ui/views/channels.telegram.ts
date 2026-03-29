@@ -1,7 +1,9 @@
 import { html, nothing } from "lit";
+import { t } from "../../i18n/index.ts";
 import { formatRelativeTimestamp } from "../format.ts";
 import type { ChannelAccountSnapshot, TelegramStatus } from "../types.ts";
 import { renderChannelConfigSection } from "./channels.config.ts";
+import { formatBooleanLabel, formatProbeStatusLabel } from "./channels.shared.ts";
 import type { ChannelsProps } from "./channels.types.ts";
 
 export function renderTelegramCard(params: {
@@ -9,9 +11,9 @@ export function renderTelegramCard(params: {
   telegram?: TelegramStatus;
   telegramAccounts: ChannelAccountSnapshot[];
   accountCountLabel: unknown;
+  selectedAccount?: ChannelAccountSnapshot | null;
 }) {
-  const { props, telegram, telegramAccounts, accountCountLabel } = params;
-  const hasMultipleAccounts = telegramAccounts.length > 1;
+  const { props, telegram, telegramAccounts, accountCountLabel, selectedAccount } = params;
 
   const renderAccountCard = (account: ChannelAccountSnapshot) => {
     const probe = account.probe as { bot?: { username?: string } } | undefined;
@@ -27,16 +29,18 @@ export function renderTelegramCard(params: {
         </div>
         <div class="status-list account-card-status">
           <div>
-            <span class="label">Running</span>
-            <span>${account.running ? "Yes" : "No"}</span>
+            <span class="label">${t("channels.labels.running")}</span>
+            <span>${formatBooleanLabel(account.running)}</span>
           </div>
           <div>
-            <span class="label">Configured</span>
-            <span>${account.configured ? "Yes" : "No"}</span>
+            <span class="label">${t("channels.labels.configured")}</span>
+            <span>${formatBooleanLabel(account.configured)}</span>
           </div>
           <div>
-            <span class="label">Last inbound</span>
-            <span>${account.lastInboundAt ? formatRelativeTimestamp(account.lastInboundAt) : "n/a"}</span>
+            <span class="label">${t("channels.labels.lastInbound")}</span>
+            <span>
+              ${account.lastInboundAt ? formatRelativeTimestamp(account.lastInboundAt) : t("common.na")}
+            </span>
           </div>
           ${
             account.lastError
@@ -55,37 +59,36 @@ export function renderTelegramCard(params: {
   return html`
     <div class="card">
       <div class="card-title">Telegram</div>
-      <div class="card-sub">Bot status and channel configuration.</div>
       ${accountCountLabel}
 
       ${
-        hasMultipleAccounts
+        selectedAccount
           ? html`
-            <div class="account-card-list">
-              ${telegramAccounts.map((account) => renderAccountCard(account))}
-            </div>
+              <div class="account-card-list">
+                ${renderAccountCard(selectedAccount)}
+              </div>
           `
           : html`
             <div class="status-list" style="margin-top: 16px;">
               <div>
-                <span class="label">Configured</span>
-                <span>${telegram?.configured ? "Yes" : "No"}</span>
+                <span class="label">${t("channels.labels.configured")}</span>
+                <span>${formatBooleanLabel(telegram?.configured)}</span>
               </div>
               <div>
-                <span class="label">Running</span>
-                <span>${telegram?.running ? "Yes" : "No"}</span>
+                <span class="label">${t("channels.labels.running")}</span>
+                <span>${formatBooleanLabel(telegram?.running)}</span>
               </div>
               <div>
-                <span class="label">Mode</span>
-                <span>${telegram?.mode ?? "n/a"}</span>
+                <span class="label">${t("channels.labels.mode")}</span>
+                <span>${telegram?.mode ?? t("common.na")}</span>
               </div>
               <div>
-                <span class="label">Last start</span>
-                <span>${telegram?.lastStartAt ? formatRelativeTimestamp(telegram.lastStartAt) : "n/a"}</span>
+                <span class="label">${t("channels.labels.lastStart")}</span>
+                <span>${telegram?.lastStartAt ? formatRelativeTimestamp(telegram.lastStartAt) : t("common.na")}</span>
               </div>
               <div>
-                <span class="label">Last probe</span>
-                <span>${telegram?.lastProbeAt ? formatRelativeTimestamp(telegram.lastProbeAt) : "n/a"}</span>
+                <span class="label">${t("channels.labels.lastProbe")}</span>
+                <span>${telegram?.lastProbeAt ? formatRelativeTimestamp(telegram.lastProbeAt) : t("common.na")}</span>
               </div>
             </div>
           `
@@ -102,7 +105,7 @@ export function renderTelegramCard(params: {
       ${
         telegram?.probe
           ? html`<div class="callout" style="margin-top: 12px;">
-            Probe ${telegram.probe.ok ? "ok" : "failed"} ·
+            ${t("channels.actions.probe")} ${formatProbeStatusLabel(telegram.probe.ok)} ·
             ${telegram.probe.status ?? ""} ${telegram.probe.error ?? ""}
           </div>`
           : nothing
@@ -112,7 +115,7 @@ export function renderTelegramCard(params: {
 
       <div class="row" style="margin-top: 12px;">
         <button class="btn" @click=${() => props.onRefresh(true)}>
-          Probe
+          ${t("channels.actions.probe")}
         </button>
       </div>
     </div>

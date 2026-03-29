@@ -10,6 +10,7 @@ import {
   normalizeVerboseLevel,
   resolveThinkingDefaultForModel,
 } from "../../../../src/auto-reply/thinking.shared.js";
+import { t } from "../../i18n/index.ts";
 import {
   DEFAULT_AGENT_ID,
   DEFAULT_MAIN_KEY,
@@ -115,9 +116,9 @@ async function executeCompact(
 ): Promise<SlashCommandResult> {
   try {
     await client.request("sessions.compact", { key: sessionKey });
-    return { content: "Context compacted successfully.", action: "refresh" };
+    return { content: t("chat.compactSuccess"), action: "refresh" };
   } catch (err) {
-    return { content: `Compaction failed: ${String(err)}` };
+    return { content: t("chat.compactFailed", { error: String(err) }) };
   }
 }
 

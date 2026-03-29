@@ -9,6 +9,7 @@ import { inspectReadOnlyChannelAccount } from "../channels/read-only-account-ins
 import { formatCliCommand } from "../cli/command-format.js";
 import { resolveNativeCommandsEnabled, resolveNativeSkillsEnabled } from "../config/commands.js";
 import type { OpenClawConfig } from "../config/config.js";
+import { resolveDmScope } from "../config/dm-scope.js";
 import { isDangerousNameMatchingEnabled } from "../config/dangerous-name-matching.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { createLazyRuntimeSurface } from "../shared/lazy-runtime.js";
@@ -297,7 +298,7 @@ export async function collectChannelSecurityFindings(params: {
       allowFrom: input.allowFrom,
       normalizeEntry: input.normalizeEntry,
     });
-    const dmScope = params.cfg.session?.dmScope ?? "main";
+    const dmScope = resolveDmScope(params.cfg.session?.dmScope);
 
     if (input.dmPolicy === "open") {
       const allowFromKey = `${input.allowFromPath}allowFrom`;

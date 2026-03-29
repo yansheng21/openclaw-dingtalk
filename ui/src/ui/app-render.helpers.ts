@@ -1,5 +1,6 @@
 import { html, nothing } from "lit";
 import { repeat } from "lit/directives/repeat.js";
+import { buildAgentMainSessionKey } from "../../../src/routing/session-key.js";
 import { parseAgentSessionKey } from "../../../src/sessions/session-key-utils.js";
 import { t } from "../i18n/index.ts";
 import { refreshChat } from "./app-chat.ts";
@@ -835,6 +836,15 @@ export function resolveSessionOptionGroups(
       title: key,
     });
   };
+
+  const mainKey = state.agentsList?.mainKey?.trim() || "main";
+  for (const agent of state.agentsList?.agents ?? []) {
+    const agentId = agent.id?.trim();
+    if (!agentId) {
+      continue;
+    }
+    addOption(buildAgentMainSessionKey({ agentId, mainKey }));
+  }
 
   for (const row of rows) {
     if (row.key !== sessionKey && (row.kind === "global" || row.kind === "unknown")) {

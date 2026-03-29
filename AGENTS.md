@@ -1,214 +1,126 @@
-# Repository Guidelines
+# CLAUDE.md
 
-- Repo: https://github.com/openclaw/openclaw
-- In chat replies, file references must be repo-root relative only (example: `extensions/bluebubbles/src/channel.ts:80`); never absolute paths or `~/...`.
-- Do not edit files covered by security-focused `CODEOWNERS` rules unless a listed owner explicitly asked for the change or is already reviewing it with you. Treat those paths as restricted surfaces, not drive-by cleanup.
+This file provides guidance to Claude Code (claude.ai/code) when working in this repository.
 
-## Project Structure & Module Organization
+## Repository at a glance
 
-- Source code: `src/` (CLI wiring in `src/cli`, commands in `src/commands`, web provider in `src/provider-web.ts`, infra in `src/infra`, media pipeline in `src/media`).
-- Tests: colocated `*.test.ts`.
-- Docs: `docs/` (images, queue, Pi config). Built output lives in `dist/`.
-- Nomenclature: use "plugin" / "plugins" in docs, UI, changelogs, and contributor guidance. `extensions/*` remains the internal directory/package path to avoid repo-wide churn from a rename.
-- Bundled plugin naming: for repo-owned workspace plugins, keep the canonical plugin id aligned across `openclaw.plugin.json:id`, `extensions/<id>` by default, and package names anchored to the same id (`@openclaw/<id>` or approved suffix forms like `-provider`, `-plugin`, `-speech`, `-sandbox`, `-media-understanding`). Keep `openclaw.install.npmSpec` equal to the package name and `openclaw.channel.id` equal to the plugin id when present. Exceptions must be explicit and covered by the repo invariant test.
-- Plugins: live under `extensions/*` (workspace packages). Keep plugin-only deps in the extension `package.json`; do not add them to the root `package.json` unless core uses them.
-- Plugins: install runs `npm install --omit=dev` in plugin dir; runtime deps must live in `dependencies`. Avoid `workspace:*` in `dependencies` (npm install breaks); put `openclaw` in `devDependencies` or `peerDependencies` instead (runtime resolves `openclaw/plugin-sdk` via jiti alias).
-- Import boundaries: extension production code should treat `openclaw/plugin-sdk/*` plus local `api.ts` / `runtime-api.ts` barrels as the public surface. Do not import core `src/**`, `src/plugin-sdk-internal/**`, or another extension's `src/**` directly.
-- Installers served from `https://openclaw.ai/*`: live in the sibling repo `../openclaw.ai` (`public/install.sh`, `public/install-cli.sh`, `public/install.ps1`).
-- Messaging channels: always consider **all** built-in + extension channels when refactoring shared logic (routing, allowlists, pairing, command gating, onboarding, docs).
-  - Core channel docs: `docs/channels/`
-  - Core channel code: `src/telegram`, `src/discord`, `src/slack`, `src/signal`, `src/imessage`, `src/web` (WhatsApp web), `src/channels`, `src/routing`
-  - Extensions (channel plugins): `extensions/*` (e.g. `extensions/msteams`, `extensions/matrix`, `extensions/zalo`, `extensions/zalouser`, `extensions/voice-call`)
-- When adding channels/extensions/apps/docs, update `.github/labeler.yml` and create matching GitHub labels (use existing channel/extension label colors).
+OpenClaw is a multi-channel AI gateway. This repo also carries the DingClaw enterprise layer, which adds DingTalk-centered enterprise workflows, internal APIs, policy/identity services, audit trails, and admin consoles around the OpenClaw core.
 
-## Docs Linking (Mintlify)
+The repository already includes a blueprint set under `../blueprint/` that defines the enterprise direction, architecture, service split, package boundaries, and MVP build slices.
 
-- Docs are hosted on Mintlify (docs.openclaw.ai).
-- Internal doc links in `docs/**/*.md`: root-relative, no `.md`/`.mdx` (example: `[Config](/configuration)`).
-- When working with documentation, read the mintlify skill.
-- For docs, UI copy, and picker lists, order services/providers alphabetically unless the section is explicitly describing runtime behavior (for example auto-detection or execution order).
-- Section cross-references: use anchors on root-relative paths (example: `[Hooks](/configuration#hooks)`).
-- Doc headings and anchors: avoid em dashes and apostrophes in headings because they break Mintlify anchor links.
-- When the user asks for links, reply with full `https://docs.openclaw.ai/...` URLs (not root-relative).
-- When you touch docs, end the reply with the `https://docs.openclaw.ai/...` URLs you referenced.
-- README (GitHub): keep absolute docs URLs (`https://docs.openclaw.ai/...`) so links work on GitHub.
-- Docs content must be generic: no personal device names/hostnames/paths; use placeholders like `user@gateway-host` and “gateway host”.
+The big-picture runtime shape is:
 
-## Docs i18n (zh-CN)
+- **Gateway**: one long-lived WebSocket daemon owns messaging surfaces and serves the canvas host on the same port. Clients connect over WS for control-plane actions; nodes also connect over WS with `role: node`.
+- **Clients**: CLI, admin UI, desktop shell, and mac app all talk to the Gateway.
+- **Nodes**: macOS/iOS/Android/headless nodes expose device-side commands such as canvas, camera, screen, and location.
+- **Plugins**: built-in and extension plugins live under `extensions/*` and integrate through the public plugin SDK surface.
+- **Enterprise layer**: DingClaw’s `apps/`, `packages/`, and enterprise extensions add control-plane services, identity/policy/approval/audit modules, and Chinese admin UX.
 
-- `docs/zh-CN/**` is generated; do not edit unless the user explicitly asks.
-- Pipeline: update English docs → adjust glossary (`docs/.i18n/glossary.zh-CN.json`) → run `scripts/docs-i18n` → apply targeted fixes only if instructed.
-- Before rerunning `scripts/docs-i18n`, add glossary entries for any new technical terms, page titles, or short nav labels that must stay in English or use a fixed translation (for example `Doctor` or `Polls`).
-- `pnpm docs:check-i18n-glossary` enforces glossary coverage for changed English doc titles and short internal doc labels before translation reruns.
-- Translation memory: `docs/.i18n/zh-CN.tm.jsonl` (generated).
-- See `docs/.i18n/README.md`.
-- The pipeline can be slow/inefficient; if it’s dragging, ping @jospalmbier on Discord instead of hacking around it.
+## Key repo layout
 
-## exe.dev VM ops (general)
+- `src/` — core OpenClaw source, including CLI wiring, gateway, routing, infra, security, plugin SDK, and UI helpers.
+- `apps/` — app surfaces such as `admin-console`, `desktop-shell`, `control-api`, `runtime-api`, and `jobs`.
+- `packages/` — shared enterprise services and models such as `shared-types`, `shared-config`, `database`, `identity-service`, `policy-engine`, `approval-service`, `audit-service`, `runtime-bridge`, and `model-registry`.
+- `extensions/` — plugins and provider/channel integrations.
+- `ui/` — web UI implementation.
+- `docs/` — user-facing docs and architecture notes.
+- `.claude/guide/` — the repo knowledge base for Claude Code; keep it aligned with the actual source tree and update it when architecture or core flows change.
+- `scripts/` — build, codegen, packaging, and validation scripts.
 
-- Access: stable path is `ssh exe.dev` then `ssh vm-name` (assume SSH key already set).
-- SSH flaky: use exe.dev web terminal or Shelley (web agent); keep a tmux session for long ops.
-- Update: `sudo npm i -g openclaw@latest` (global install needs root on `/usr/lib/node_modules`).
-- Config: use `openclaw config set ...`; ensure `gateway.mode=local` is set.
-- Discord: store raw token only (no `DISCORD_BOT_TOKEN=` prefix).
-- Restart: stop old gateway and run:
-  `pkill -9 -f openclaw-gateway || true; nohup openclaw gateway run --bind loopback --port 18789 --force > /tmp/openclaw-gateway.log 2>&1 &`
-- Verify: `openclaw channels status --probe`, `ss -ltnp | rg 18789`, `tail -n 120 /tmp/openclaw-gateway.log`.
+## Common commands
 
-## Build, Test, and Development Commands
+### Setup
 
-- Runtime baseline: Node **22+** (keep Node + Bun paths working).
-- Install deps: `pnpm install`
-- If deps are missing (for example `node_modules` missing, `vitest not found`, or `command not found`), run the repo’s package-manager install command (prefer lockfile/README-defined PM), then rerun the exact requested command once. Apply this to test/build/lint/typecheck/dev commands; if retry still fails, report the command and first actionable error.
-- Pre-commit hooks: `prek install` (runs same checks as CI)
-- Also supported: `bun install` (keep `pnpm-lock.yaml` + Bun patching in sync when touching deps/patches).
-- Prefer Bun for TypeScript execution (scripts, dev, tests): `bun <file.ts>` / `bunx <tool>`.
-- Run CLI in dev: `pnpm openclaw ...` (bun) or `pnpm dev`.
-- Node remains supported for running built output (`dist/*`) and production installs.
-- Mac packaging (dev): `scripts/package-mac-app.sh` defaults to current arch.
-- Type-check/build: `pnpm build`
-- TypeScript checks: `pnpm tsgo`
-- Lint/format: `pnpm check`
-- Format check: `pnpm format` (oxfmt --check)
-- Format fix: `pnpm format:fix` (oxfmt --write)
-- Tests: `pnpm test` (vitest); coverage: `pnpm test:coverage`
-- Generated baseline artifacts live together under `docs/.generated/`.
-- Config schema drift uses `pnpm config:docs:gen` / `pnpm config:docs:check`.
-- Plugin SDK API drift uses `pnpm plugin-sdk:api:gen` / `pnpm plugin-sdk:api:check`.
-- If you change config schema/help or the public Plugin SDK surface, update the matching baseline artifact and keep the two drift-check flows adjacent in scripts/workflows/docs guidance rather than inventing a third pattern.
-- For narrowly scoped changes, prefer narrowly scoped tests that directly validate the touched behavior. If no meaningful scoped test exists, say so explicitly and use the next most direct validation available.
-- Preferred landing bar for pushes to `main`: `pnpm check` and `pnpm test`, with a green result when feasible.
-- Scoped tests prove the change itself. `pnpm test` remains the default `main` landing bar; scoped tests do not replace full-suite gates by default.
-- Hard gate: if the change can affect build output, packaging, lazy-loading/module boundaries, or published surfaces, `pnpm build` MUST be run and MUST pass before pushing `main`.
-- Default rule: do not commit or push with failing format, lint, type, build, or required test checks when those failures are caused by the change or plausibly related to the touched surface.
-- For narrowly scoped changes, if unrelated failures already exist on latest `origin/main`, state that clearly, report the scoped tests you ran, and ask before broadening scope into unrelated fixes or landing despite those failures.
-- Do not use scoped tests as permission to ignore plausibly related failures.
+- Install dependencies: `pnpm install`
+- Run the CLI locally: `pnpm dev`
+- Run the packaged CLI entry: `pnpm openclaw <command>`
+- Run the desktop shell: `pnpm desktop:dev`
+- Run the admin console: `pnpm admin:console`
+- Run the web UI: `pnpm ui:dev`
 
-## Coding Style & Naming Conventions
+### Build and checks
 
-- Language: TypeScript (ESM). Prefer strict typing; avoid `any`.
-- Formatting/linting via Oxlint and Oxfmt.
-- Never add `@ts-nocheck` and do not disable `no-explicit-any`; fix root causes and update Oxlint/Oxfmt config only when required.
-- Dynamic import guardrail: do not mix `await import("x")` and static `import ... from "x"` for the same module in production code paths. If you need lazy loading, create a dedicated `*.runtime.ts` boundary (that re-exports from `x`) and dynamically import that boundary from lazy callers only.
-- Dynamic import verification: after refactors that touch lazy-loading/module boundaries, run `pnpm build` and check for `[INEFFECTIVE_DYNAMIC_IMPORT]` warnings before submitting.
-- Extension SDK self-import guardrail: inside an extension package, do not import that same extension via `openclaw/plugin-sdk/<extension>` from production files. Route internal imports through a local barrel such as `./api.ts` or `./runtime-api.ts`, and keep the `plugin-sdk/<extension>` path as the external contract only.
-- Extension package boundary guardrail: inside `extensions/<id>/**`, do not use relative imports/exports that resolve outside that same `extensions/<id>` package root. If shared code belongs in the plugin SDK, import `openclaw/plugin-sdk/<subpath>` instead of reaching into `src/plugin-sdk/**` or other repo paths via `../`.
-- Extension API surface rule: `openclaw/plugin-sdk/<subpath>` is the only public cross-package contract for extension-facing SDK code. If an extension needs a new seam, add a public subpath first; do not reach into `src/plugin-sdk/**` by relative path.
-- Never share class behavior via prototype mutation (`applyPrototypeMixins`, `Object.defineProperty` on `.prototype`, or exporting `Class.prototype` for merges). Use explicit inheritance/composition (`A extends B extends C`) or helper composition so TypeScript can typecheck.
-- If this pattern is needed, stop and get explicit approval before shipping; default behavior is to split/refactor into an explicit class hierarchy and keep members strongly typed.
-- In tests, prefer per-instance stubs over prototype mutation (`SomeClass.prototype.method = ...`) unless a test explicitly documents why prototype-level patching is required.
-- Add brief code comments for tricky or non-obvious logic.
-- Keep files concise; extract helpers instead of “V2” copies. Use existing patterns for CLI options and dependency injection via `createDefaultDeps`.
-- Aim to keep files under ~700 LOC; guideline only (not a hard guardrail). Split/refactor when it improves clarity or testability.
-- Naming: use **OpenClaw** for product/app/docs headings; use `openclaw` for CLI command, package/binary, paths, and config keys.
-- Written English: use American spelling and grammar in code, comments, docs, and UI strings (e.g. "color" not "colour", "behavior" not "behaviour", "analyze" not "analyse").
+- Full build: `pnpm build`
+- TypeScript check: `pnpm tsgo`
+- Lint: `pnpm lint`
+- Format check: `pnpm format:check`
+- Combined repo check: `pnpm check`
+- Docs checks: `pnpm check:docs`
+- Config schema baseline: `pnpm config:docs:check` / `pnpm config:docs:gen`
+- Plugin SDK API baseline: `pnpm plugin-sdk:api:check` / `pnpm plugin-sdk:api:gen`
+- Plugin SDK export sync: `pnpm plugin-sdk:check-exports`
 
-## Release / Advisory Workflows
+### Tests
 
-- Use `$openclaw-release-maintainer` at `.agents/skills/openclaw-release-maintainer/SKILL.md` for release naming, version coordination, release auth, and changelog-backed release-note workflows.
-- Use `$openclaw-ghsa-maintainer` at `.agents/skills/openclaw-ghsa-maintainer/SKILL.md` for GHSA advisory inspection, patch/publish flow, private-fork checks, and GHSA API validation.
-- Release and publish remain explicit-approval actions even when using the skill.
+- Full test suite: `pnpm test`
+- Coverage: `pnpm test:coverage`
+- Single test file or filter: `pnpm test -- <path-or-filter> [vitest args...]`
+- Unit-only run: `pnpm test:fast`
+- Gateway-focused tests: `pnpm test:gateway`
+- Channel-specific tests: `pnpm test:channels`
+- UI tests: `pnpm test:ui`
+- E2E tests: `pnpm test:e2e`
+- Live tests: `pnpm test:live`
 
-## Testing Guidelines
+### Docs and generated artifacts
 
-- Framework: Vitest with V8 coverage thresholds (70% lines/branches/functions/statements).
-- Naming: match source names with `*.test.ts`; e2e in `*.e2e.test.ts`.
-- Run `pnpm test` (or `pnpm test:coverage`) before pushing when you touch logic.
-- Write tests to clean up timers, env, globals, mocks, sockets, temp dirs, and module state so `--isolate=false` stays green.
-- Agents MUST NOT modify baseline, inventory, ignore, snapshot, or expected-failure files to silence failing checks without explicit approval in this chat.
-- For targeted/local debugging, keep using the wrapper: `pnpm test -- <path-or-filter> [vitest args...]` (for example `pnpm test -- src/commands/onboard-search.test.ts -t "shows registered plugin providers"`); do not default to raw `pnpm vitest run ...` because it bypasses wrapper config/profile/pool routing.
-- Do not set test workers above 16; tried already.
-- Do not reintroduce Vitest VM pools by default without fresh green evidence on current `main`; keep CI on `forks`.
-- If local Vitest runs cause memory pressure (common on non-Mac-Studio hosts), use `OPENCLAW_TEST_PROFILE=low OPENCLAW_TEST_SERIAL_GATEWAY=1 pnpm test` for land/gate runs.
-- Live tests (real keys): `CLAWDBOT_LIVE_TEST=1 pnpm test:live` (OpenClaw-only) or `LIVE=1 pnpm test:live` (includes provider live tests). Docker: `pnpm test:docker:live-models`, `pnpm test:docker:live-gateway`. Onboarding Docker E2E: `pnpm test:docker:onboard`.
-- Full kit + what’s covered: `docs/help/testing.md`.
-- Changelog: user-facing changes only; no internal/meta notes (version alignment, appcast reminders, release process).
-- Changelog placement: in the active version block, append new entries to the end of the target section (`### Changes` or `### Fixes`); do not insert new entries at the top of a section.
-- Changelog attribution: use at most one contributor mention per line; prefer `Thanks @author` and do not also add `by @author` on the same entry.
-- Pure test additions/fixes generally do **not** need a changelog entry unless they alter user-facing behavior or the user asks for one.
-- Mobile: before using a simulator, check for connected real devices (iOS + Android) and prefer them when available.
+- Docs link/content checks: `pnpm check:docs`
+- Config schema baseline: `pnpm config:docs:check` / `pnpm config:docs:gen`
+- Plugin SDK API baseline: `pnpm plugin-sdk:api:check` / `pnpm plugin-sdk:api:gen`
+- Plugin SDK export sync: `pnpm plugin-sdk:check-exports`
 
-## Commit & Pull Request Guidelines
+## Architecture notes that matter
 
-- Use `$openclaw-pr-maintainer` at `.agents/skills/openclaw-pr-maintainer/SKILL.md` for maintainer PR triage, review, close, search, and landing workflows.
-- This includes auto-close labels, bug-fix evidence gates, GitHub comment/search footguns, and maintainer PR decision flow.
-- For the repo's end-to-end maintainer PR workflow, use `$openclaw-pr-maintainer` at `.agents/skills/openclaw-pr-maintainer/SKILL.md`.
+### Gateway and protocol
 
-- `/landpr` lives in the global Codex prompts (`~/.codex/prompts/landpr.md`); when landing or merging any PR, always follow that `/landpr` process.
-- Create commits with `scripts/committer "<msg>" <file...>`; avoid manual `git add`/`git commit` so staging stays scoped.
-- Follow concise, action-oriented commit messages (e.g., `CLI: add verbose flag to send`).
-- Group related changes; avoid bundling unrelated refactors.
-- PR submission template (canonical): `.github/pull_request_template.md`
-- Issue submission templates (canonical): `.github/ISSUE_TEMPLATE/`
+- The Gateway is the central runtime and the only place that opens the WhatsApp session.
+- WebSocket handshake is mandatory; `connect` is the first frame.
+- Protocol types are defined with TypeBox schemas and code-generated into JSON Schema and Swift models.
+- The canvas host is served from the Gateway HTTP server, so UI/runtime changes often affect both protocol and web assets.
 
-## Git Notes
+### Channels, routing, and nodes
 
-- If `git branch -d/-D <branch>` is policy-blocked, delete the local ref directly: `git update-ref -d refs/heads/<branch>`.
-- Agents MUST NOT create or push merge commits on `main`. If `main` has advanced, rebase local commits onto the latest `origin/main` before pushing.
-- Bulk PR close/reopen safety: if a close action would affect more than 5 PRs, first ask for explicit user confirmation with the exact PR count and target scope/query.
+- Shared messaging logic spans core channels plus extension channels; when changing routing, allowlists, pairing, onboarding, or command gating, consider all supported channels, not just the one you are touching.
+- Channel behavior is split between core channel code in `src/{telegram,discord,slack,signal,imessage,web,channels,routing}` and plugin-based channels in `extensions/*`.
+- Node-facing features use the same Gateway transport but different capabilities and permissions than normal clients.
 
-## Security & Configuration Tips
+### Plugin and extension boundaries
 
-- Web provider stores creds at `~/.openclaw/credentials/`; rerun `openclaw login` if logged out.
-- Pi sessions live under `~/.openclaw/sessions/` by default; the base directory is not configurable.
-- Environment variables: see `~/.profile`.
-- Never commit or publish real phone numbers, videos, or live configuration values. Use obviously fake placeholders in docs, tests, and examples.
-- Release flow: use the private [maintainer release docs](https://github.com/openclaw/maintainers/blob/main/release/README.md) for the actual runbook, `docs/reference/RELEASING.md` for the public release policy, and `$openclaw-release-maintainer` for the maintainership workflow.
+- Extension production code should treat `openclaw/plugin-sdk/*` plus local `api.ts` / `runtime-api.ts` barrels as the public surface.
+- Do not import core `src/**`, `src/plugin-sdk-internal/**`, or another extension’s `src/**` directly from extension production code.
+- Inside `extensions/<id>/**`, keep imports inside that package root unless you are going through the public plugin SDK contract.
+- Bundled plugin metadata must stay aligned across plugin ids, package names, and `openclaw.plugin.json`.
 
-## Local Runtime / Platform Notes
+### Enterprise layer
 
-- Vocabulary: "makeup" = "mac app".
-- Rebrand/migration issues or legacy config/service warnings: run `openclaw doctor` (see `docs/gateway/doctor.md`).
-- Use `$openclaw-parallels-smoke` at `.agents/skills/openclaw-parallels-smoke/SKILL.md` for Parallels smoke, rerun, upgrade, debug, and result-interpretation workflows across macOS, Windows, and Linux guests.
-- For the macOS Discord roundtrip deep dive, use the narrower `.agents/skills/parallels-discord-roundtrip/SKILL.md` companion skill.
-- Never edit `node_modules` (global/Homebrew/npm/git installs too). Updates overwrite. Skill notes go in `tools.md` or `AGENTS.md`.
-- If you need local-only `.agents` ignores, use `.git/info/exclude` instead of repo `.gitignore`.
-- When adding a new `AGENTS.md` anywhere in the repo, also add a `CLAUDE.md` symlink pointing to it (example: `ln -s AGENTS.md CLAUDE.md`).
-- Signal: "update fly" => `fly ssh console -a flawd-bot -C "bash -lc 'cd /data/clawd/openclaw && git pull --rebase origin main'"` then `fly machines restart e825232f34d058 -a flawd-bot`.
-- CLI progress: use `src/cli/progress.ts` (`osc-progress` + `@clack/prompts` spinner); don’t hand-roll spinners/bars.
-- Status output: keep tables + ANSI-safe wrapping (`src/terminal/table.ts`); `status --all` = read-only/pasteable, `status --deep` = probes.
-- Gateway currently runs only as the menubar app; there is no separate LaunchAgent/helper label installed. Restart via the OpenClaw Mac app or `scripts/restart-mac.sh`; to verify/kill use `launchctl print gui/$UID | grep openclaw` rather than assuming a fixed label. **When debugging on macOS, start/stop the gateway via the app, not ad-hoc tmux sessions; kill any temporary tunnels before handoff.**
-- macOS logs: use `./scripts/clawlog.sh` to query unified logs for the OpenClaw subsystem; it supports follow/tail/category filters and expects passwordless sudo for `/usr/bin/log`.
-- If shared guardrails are available locally, review them; otherwise follow this repo's guidance.
-- SwiftUI state management (iOS/macOS): prefer the `Observation` framework (`@Observable`, `@Bindable`) over `ObservableObject`/`@StateObject`; don’t introduce new `ObservableObject` unless required for compatibility, and migrate existing usages when touching related code.
-- Connection providers: when adding a new connection, update every UI surface and docs (macOS app, web UI, mobile if applicable, onboarding/overview docs) and add matching status + configuration forms so provider lists and settings stay in sync.
-- Version locations: `package.json` (CLI), `apps/android/app/build.gradle.kts` (versionName/versionCode), `apps/ios/Sources/Info.plist` + `apps/ios/Tests/Info.plist` (CFBundleShortVersionString/CFBundleVersion), `apps/macos/Sources/OpenClaw/Resources/Info.plist` (CFBundleShortVersionString/CFBundleVersion), `docs/install/updating.md` (pinned npm version), and Peekaboo Xcode projects/Info.plists (MARKETING_VERSION/CURRENT_PROJECT_VERSION).
-- "Bump version everywhere" means all version locations above **except** `appcast.xml` (only touch appcast when cutting a new macOS Sparkle release).
-- **Restart apps:** “restart iOS/Android apps” means rebuild (recompile/install) and relaunch, not just kill/launch.
-- **Device checks:** before testing, verify connected real devices (iOS/Android) before reaching for simulators/emulators.
-- iOS Team ID lookup: `security find-identity -p codesigning -v` → use Apple Development (…) TEAMID. Fallback: `defaults read com.apple.dt.Xcode IDEProvisioningTeamIdentifiers`.
-- A2UI bundle hash: `src/canvas-host/a2ui/.bundle.hash` is auto-generated; ignore unexpected changes, and only regenerate via `pnpm canvas:a2ui:bundle` (or `scripts/bundle-a2ui.sh`) when needed. Commit the hash as a separate commit.
-- Release signing/notary credentials are managed outside the repo; maintainers keep that setup in the private [maintainer release docs](https://github.com/openclaw/maintainers/tree/main/release).
-- Lobster palette: use the shared CLI palette in `src/terminal/palette.ts` (no hardcoded colors); apply palette to onboarding/config prompts and other TTY UI output as needed.
-- When asked to open a “session” file, open the Pi session logs under `~/.openclaw/agents/<agentId>/sessions/*.jsonl` (use the `agent=<id>` value in the Runtime line of the system prompt; newest unless a specific ID is given), not the default `sessions.json`. If logs are needed from another machine, SSH via Tailscale and read the same path there.
-- Do not rebuild the macOS app over SSH; rebuilds must be run directly on the Mac.
-- Voice wake forwarding tips:
-  - Command template should stay `openclaw-mac agent --message "${text}" --thinking low`; `VoiceWakeForwarder` already shell-escapes `${text}`. Don’t add extra quotes.
-  - launchd PATH is minimal; ensure the app’s launch agent PATH includes standard system paths plus your pnpm bin (typically `$HOME/Library/pnpm`) so `pnpm`/`openclaw` binaries resolve when invoked via `openclaw-mac`.
+- DingClaw keeps enterprise concerns in `apps/`, `packages/`, and dedicated extensions rather than spreading them through core gateway code.
+- `packages/identity-service` derives `SubjectClaims` from ingress data.
+- `packages/policy-engine` evaluates routing, tool permissions, approval needs, and persona shape.
+- `packages/approval-service` manages approval request lifecycle state.
+- `packages/audit-service` records, queries, and exports audit events.
+- `packages/runtime-bridge` ties the identity, policy, approval, and audit layers together into one runtime decision.
+- `packages/shared-types` carries the shared enterprise ingress, claims, policy, approval, audit, and runtime decision types.
+- `apps/admin-console` is the Chinese management console, and `apps/runtime-api` / `apps/control-api` are the main control-plane surfaces.
+- `.claude/guide/` already contains the initial repo index, architecture notes, API inventory, custom-library notes, and core flow docs; keep it updated when changing these surfaces.
 
-## Collaboration / Safety Notes
+## Practical working rules
 
-- When working on a GitHub Issue or PR, print the full URL at the end of the task.
-- When answering questions, respond with high-confidence answers only: verify in code; do not guess.
-- Never update the Carbon dependency.
-- Any dependency with `pnpm.patchedDependencies` must use an exact version (no `^`/`~`).
-- Patching dependencies (pnpm patches, overrides, or vendored changes) requires explicit approval; do not do this by default.
-- **Multi-agent safety:** do **not** create/apply/drop `git stash` entries unless explicitly requested (this includes `git pull --rebase --autostash`). Assume other agents may be working; keep unrelated WIP untouched and avoid cross-cutting state changes.
-- **Multi-agent safety:** when the user says "push", you may `git pull --rebase` to integrate latest changes (never discard other agents' work). When the user says "commit", scope to your changes only. When the user says "commit all", commit everything in grouped chunks.
-- **Multi-agent safety:** do **not** create/remove/modify `git worktree` checkouts (or edit `.worktrees/*`) unless explicitly requested.
-- **Multi-agent safety:** do **not** switch branches / check out a different branch unless explicitly requested.
-- **Multi-agent safety:** running multiple agents is OK as long as each agent has its own session.
-- **Multi-agent safety:** when you see unrecognized files, keep going; focus on your changes and commit only those.
-- Lint/format churn:
-  - If staged+unstaged diffs are formatting-only, auto-resolve without asking.
-  - If commit/push already requested, auto-stage and include formatting-only follow-ups in the same commit (or a tiny follow-up commit if needed), no extra confirmation.
-  - Only ask when changes are semantic (logic/data/behavior).
-- **Multi-agent safety:** focus reports on your edits; avoid guard-rail disclaimers unless truly blocked; when multiple agents touch the same file, continue if safe; end with a brief “other files present” note only if relevant.
-- Bug investigations: read source code of relevant npm dependencies and all related local code before concluding; aim for high-confidence root cause.
-- Code style: add brief comments for tricky logic; keep files under ~500 LOC when feasible (split/refactor as needed).
-- Tool schema guardrails (google-antigravity): avoid `Type.Union` in tool input schemas; no `anyOf`/`oneOf`/`allOf`. Use `stringEnum`/`optionalStringEnum` (Type.Unsafe enum) for string lists, and `Type.Optional(...)` instead of `... | null`. Keep top-level tool schema as `type: "object"` with `properties`.
-- Tool schema guardrails: avoid raw `format` property names in tool schemas; some validators treat `format` as a reserved keyword and reject the schema.
-- Never send streaming/partial replies to external messaging surfaces (WhatsApp, Telegram); only final replies should be delivered there. Streaming/tool events may still go to internal UIs/control channel.
-- For manual `openclaw message send` messages that include `!`, use the heredoc pattern noted below to avoid the Bash tool’s escaping.
-- Release guardrails: do not change version numbers without operator’s explicit consent; always ask permission before running any npm publish/release step.
-- Beta release guardrail: when using a beta Git tag (for example `vYYYY.M.D-beta.N`), publish npm with a matching beta version suffix (for example `YYYY.M.D-beta.N`) rather than a plain version on `--tag beta`; otherwise the plain version name gets consumed/blocked.
+- Use Node 22+ and `pnpm`.
+- Prefer the narrowest test that proves the change; if the change touches build output, packaging, lazy-loading/module boundaries, or a published surface, run `pnpm build`.
+- For targeted debugging, use `pnpm test -- <path-or-filter> [vitest args...]` instead of raw `vitest run`.
+- If dependencies are missing (for example `node_modules` missing, `vitest not found`, or `command not found`), run the repo’s package-manager install command once, then rerun the exact command; report the first actionable error if it still fails.
+- Use repo-root relative file references in chat replies, like `src/gateway/server-methods/channels.ts:42`.
+- Keep docs links root-relative inside `docs/**/*.md`; use full `https://docs.openclaw.ai/...` URLs in README and user-facing replies when linking docs.
+- For macOS gateway debugging, start/stop the gateway via the app or `scripts/restart-mac.sh`, not ad-hoc tmux sessions.
+- Do not edit `docs/zh-CN/**` unless explicitly asked.
+- Do not change version numbers or release artifacts unless the user explicitly asks.
+
+## If you need more context
+
+- `README.md` describes the DingClaw enterprise direction and repo structure.
+- `docs/concepts/architecture.md` explains the Gateway/WebSocket model.
+- `docs/cli/index.md` is the CLI command map.
+- `docs/channels/index.md` lists supported messaging channels.
+- `../blueprint/01-product-overview.md` and `../blueprint/02-system-architecture.md` are the best starting points for the DingClaw enterprise direction.
+- `../blueprint/03-identity-and-policy.md`, `../blueprint/08-api-boundaries.md`, and `../blueprint/11-package-boundaries.md` explain the enterprise service split and public boundaries.
+- `../blueprint/12-mvp-build-slices.md` is the fastest path to understand the intended build order.

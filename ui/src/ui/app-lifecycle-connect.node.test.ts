@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { applySettingsFromUrlMock, connectGatewayMock, loadBootstrapMock } = vi.hoisted(() => ({
-  applySettingsFromUrlMock: vi.fn(),
-  connectGatewayMock: vi.fn(),
-  loadBootstrapMock: vi.fn(),
-}));
+const { applySettingsFromUrlMock, connectGatewayMock, loadBootstrapMock, scheduleLogsScrollMock } =
+  vi.hoisted(() => ({
+    applySettingsFromUrlMock: vi.fn(),
+    connectGatewayMock: vi.fn(),
+    loadBootstrapMock: vi.fn(),
+    scheduleLogsScrollMock: vi.fn(),
+  }));
 
 vi.mock("./app-gateway.ts", () => ({
   connectGateway: connectGatewayMock,
@@ -35,10 +37,10 @@ vi.mock("./app-polling.ts", () => ({
 vi.mock("./app-scroll.ts", () => ({
   observeTopbar: vi.fn(),
   scheduleChatScroll: vi.fn(),
-  scheduleLogsScroll: vi.fn(),
+  scheduleLogsScroll: scheduleLogsScrollMock,
 }));
 
-import { handleConnected } from "./app-lifecycle.ts";
+import { handleConnected, handleUpdated } from "./app-lifecycle.ts";
 
 function createHost() {
   return {
@@ -70,6 +72,11 @@ describe("handleConnected", () => {
     applySettingsFromUrlMock.mockReset();
     connectGatewayMock.mockReset();
     loadBootstrapMock.mockReset();
+    scheduleLogsScrollMock.mockReset();
+    vi.stubGlobal("window", {
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    });
   });
 
   it("waits for bootstrap load before first gateway connect", async () => {
@@ -121,5 +128,24 @@ describe("handleConnected", () => {
     expect(applySettingsFromUrlMock.mock.invocationCallOrder[0]).toBeLessThan(
       loadBootstrapMock.mock.invocationCallOrder[0],
     );
+  });
+
+  it("auto-scrolls channel logs while the channels tab is active", () => {
+    const host = {
+      ...createHost(),
+      tab: "channels" as const,
+      logsAutoFollow: true,
+      logsAtBottom: true,
+    };
+
+    handleUpdated(
+      host as never,
+      new Map<PropertyKey, unknown>([
+        ["logsEntries", []],
+      ]),
+    );
+
+    expect(scheduleLogsScrollMock).toHaveBeenCalledTimes(1);
+    expect(scheduleLogsScrollMock).toHaveBeenCalledWith(host, false);
   });
 });

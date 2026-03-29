@@ -536,6 +536,46 @@ describe("chat view", () => {
     nowSpy.mockRestore();
   });
 
+  it("localizes compaction indicators in simplified Chinese", async () => {
+    const container = document.createElement("div");
+    await i18n.setLocale("zh-CN");
+
+    render(
+      renderChat(
+        createProps({
+          compactionStatus: {
+            active: true,
+            startedAt: Date.now(),
+            completedAt: null,
+          },
+        }),
+      ),
+      container,
+    );
+
+    let indicator = container.querySelector(".compaction-indicator--active");
+    expect(indicator?.textContent).toContain("正在压缩上下文...");
+
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(1_000);
+    render(
+      renderChat(
+        createProps({
+          compactionStatus: {
+            active: false,
+            startedAt: 900,
+            completedAt: 900,
+          },
+        }),
+      ),
+      container,
+    );
+
+    indicator = container.querySelector(".compaction-indicator--complete");
+    expect(indicator?.textContent).toContain("上下文已压缩");
+    nowSpy.mockRestore();
+    await i18n.setLocale("en");
+  });
+
   it("hides stale compaction completion indicator", () => {
     const container = document.createElement("div");
     const nowSpy = vi.spyOn(Date, "now").mockReturnValue(10_000);
@@ -1128,5 +1168,66 @@ describe("chat view", () => {
     expect(labels.filter((label) => label === "Deep Chat (alpha) / main")).toHaveLength(1);
     expect(labels).toContain("Deep Chat (alpha) / main · named-main");
     expect(labels).toContain("Coding (beta) / main");
+  });
+
+  it("shows agent main sessions even when there is no existing chat history yet", () => {
+    const { state } = createChatHeaderState({ omitSessionFromList: true });
+    state.sessionKey = "agent:alpha:main";
+    state.settings.sessionKey = state.sessionKey;
+    state.agentsList = {
+      defaultId: "alpha",
+      mainKey: "main",
+      scope: "all",
+      agents: [
+        { id: "alpha", name: "Deep Chat" },
+        { id: "beta", name: "Coding" },
+      ],
+    };
+
+    const container = document.createElement("div");
+    render(renderChatSessionSelect(state), container);
+
+    const [sessionSelect] = Array.from(container.querySelectorAll<HTMLSelectElement>("select"));
+    const labels = Array.from(sessionSelect?.querySelectorAll("option") ?? []).map((option) =>
+      option.textContent?.trim(),
+    );
+
+    expect(labels).toContain("Deep Chat (alpha) / main");
+    expect(labels).toContain("Coding (beta) / main");
+  });
+
+  it("renders quick agent switches in the empty chat state", () => {
+    const onAgentChange = vi.fn();
+    const container = document.createElement("div");
+
+    render(
+      renderChat(
+        createProps({
+          connected: true,
+          messages: [],
+          agentsList: {
+            defaultId: "alpha",
+            agents: [
+              { id: "alpha", name: "Deep Chat" },
+              { id: "beta", name: "Coding" },
+            ],
+          },
+          currentAgentId: "alpha",
+          onAgentChange,
+        }),
+      ),
+      container,
+    );
+
+    const switchButtons = Array.from(
+      container.querySelectorAll<HTMLButtonElement>("[data-chat-agent-switch]"),
+    );
+    expect(switchButtons.map((button) => button.getAttribute("data-chat-agent-switch"))).toEqual([
+      "alpha",
+      "beta",
+    ]);
+
+    switchButtons[1]?.click();
+    expect(onAgentChange).toHaveBeenCalledWith("beta");
   });
 });

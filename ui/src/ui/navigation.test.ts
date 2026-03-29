@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { i18n } from "../i18n/index.ts";
 import {
   TAB_GROUPS,
   iconForTab,
@@ -6,6 +7,8 @@ import {
   normalizeBasePath,
   normalizePath,
   pathForTab,
+  productAreaLabelForTab,
+  resolveProductAreaForTab,
   subtitleForTab,
   tabFromPath,
   titleForTab,
@@ -14,6 +17,14 @@ import {
 
 /** All valid tab identifiers derived from TAB_GROUPS */
 const ALL_TABS: Tab[] = TAB_GROUPS.flatMap((group) => group.tabs) as Tab[];
+
+beforeEach(async () => {
+  await i18n.setLocale("en");
+});
+
+afterEach(async () => {
+  await i18n.setLocale("en");
+});
 
 describe("iconForTab", () => {
   it("returns a non-empty string for every tab", () => {
@@ -29,6 +40,7 @@ describe("iconForTab", () => {
     expect(iconForTab("chat")).toBe("messageSquare");
     expect(iconForTab("overview")).toBe("barChart");
     expect(iconForTab("channels")).toBe("link");
+    expect(iconForTab("knowledge")).toBe("book");
     expect(iconForTab("instances")).toBe("radio");
     expect(iconForTab("sessions")).toBe("fileText");
     expect(iconForTab("cron")).toBe("loader");
@@ -59,6 +71,7 @@ describe("titleForTab", () => {
     expect(titleForTab("chat")).toBe("Chat");
     expect(titleForTab("overview")).toBe("Overview");
     expect(titleForTab("cron")).toBe("Cron Jobs");
+    expect(titleForTab("knowledge")).toBe("Knowledge");
   });
 });
 
@@ -73,6 +86,7 @@ describe("subtitleForTab", () => {
   it("returns descriptive subtitles", () => {
     expect(subtitleForTab("chat")).toContain("quick interventions");
     expect(subtitleForTab("config")).toContain("openclaw.json");
+    expect(subtitleForTab("knowledge")).toContain("per agent");
   });
 });
 
@@ -117,6 +131,7 @@ describe("pathForTab", () => {
   it("returns correct path without base", () => {
     expect(pathForTab("chat")).toBe("/chat");
     expect(pathForTab("overview")).toBe("/overview");
+    expect(pathForTab("knowledge")).toBe("/knowledge");
   });
 
   it("prepends base path", () => {
@@ -130,6 +145,7 @@ describe("tabFromPath", () => {
     expect(tabFromPath("/chat")).toBe("chat");
     expect(tabFromPath("/overview")).toBe("overview");
     expect(tabFromPath("/sessions")).toBe("sessions");
+    expect(tabFromPath("/knowledge")).toBe("knowledge");
   });
 
   it("returns chat for root path", () => {
@@ -185,5 +201,20 @@ describe("TAB_GROUPS", () => {
     const allTabs = TAB_GROUPS.flatMap((g) => g.tabs);
     const uniqueTabs = new Set(allTabs);
     expect(uniqueTabs.size).toBe(allTabs.length);
+  });
+});
+
+describe("resolveProductAreaForTab", () => {
+  it("routes chat to application and the rest to management", () => {
+    expect(resolveProductAreaForTab("chat")).toBe("application");
+    expect(resolveProductAreaForTab("overview")).toBe("management");
+    expect(resolveProductAreaForTab("channels")).toBe("management");
+  });
+});
+
+describe("productAreaLabelForTab", () => {
+  it("returns localized product area labels", () => {
+    expect(productAreaLabelForTab("chat")).toBe("Application");
+    expect(productAreaLabelForTab("overview")).toBe("Management");
   });
 });

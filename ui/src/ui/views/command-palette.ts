@@ -61,6 +61,13 @@ const PALETTE_ITEMS: PaletteItem[] = [
     action: "nav:agents",
   },
   {
+    id: "nav-knowledge",
+    label: "Knowledge",
+    icon: "book",
+    category: "navigation",
+    action: "nav:knowledge",
+  },
+  {
     id: "skill-shell",
     label: "Shell Command",
     icon: "monitor",

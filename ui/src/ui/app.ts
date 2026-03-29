@@ -2,6 +2,11 @@ import { LitElement } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { i18n, I18nController, isSupportedLocale } from "../i18n/index.ts";
 import {
+  closeChannelCreatePicker as closeChannelCreatePickerInternal,
+  closeChannelConfigEditor as closeChannelConfigEditorInternal,
+  closeDingTalkAccountEditor as closeDingTalkAccountEditorInternal,
+  deleteDingTalkAccount as deleteDingTalkAccountInternal,
+  deleteGenericChannelAccount as deleteGenericChannelAccountInternal,
   handleChannelConfigReload as handleChannelConfigReloadInternal,
   handleChannelConfigSave as handleChannelConfigSaveInternal,
   handleNostrProfileCancel as handleNostrProfileCancelInternal,
@@ -13,6 +18,20 @@ import {
   handleWhatsAppLogout as handleWhatsAppLogoutInternal,
   handleWhatsAppStart as handleWhatsAppStartInternal,
   handleWhatsAppWait as handleWhatsAppWaitInternal,
+  openChannelCreatePicker as openChannelCreatePickerInternal,
+  openChannelConfigEditor as openChannelConfigEditorInternal,
+  openDingTalkAccountEditor as openDingTalkAccountEditorInternal,
+  openGenericChannelAccountEditor as openGenericChannelAccountEditorInternal,
+  patchGenericChannelAccountEditor as patchGenericChannelAccountEditorInternal,
+  saveDingTalkAccountEditor as saveDingTalkAccountEditorInternal,
+  saveGenericChannelAccountEditor as saveGenericChannelAccountEditorInternal,
+  startChannelCreate as startChannelCreateInternal,
+  toggleDingTalkAccountEditorSensitiveField as toggleDingTalkAccountEditorSensitiveFieldInternal,
+  updateGenericChannelAccountEditorAccountId as updateGenericChannelAccountEditorAccountIdInternal,
+  updateGenericChannelAccountEditorDefault as updateGenericChannelAccountEditorDefaultInternal,
+  updateDingTalkAccountEditorField as updateDingTalkAccountEditorFieldInternal,
+  previewDingTalkPolicyForApp as previewDingTalkPolicyInternal,
+  closeGenericChannelAccountEditor as closeGenericChannelAccountEditorInternal,
 } from "./app-channels.ts";
 import {
   handleAbortChat as handleAbortChatInternal,
@@ -55,6 +74,7 @@ import type { AppViewState } from "./app-view-state.ts";
 import { normalizeAssistantIdentity } from "./assistant-identity.ts";
 import { exportChatMarkdown } from "./chat/export.ts";
 import { loadAssistantIdentity as loadAssistantIdentityInternal } from "./controllers/assistant-identity.ts";
+import { loadConfig } from "./controllers/config.ts";
 import type { DevicePairingList } from "./controllers/devices.ts";
 import type { ExecApprovalRequest } from "./controllers/exec-approval.ts";
 import type { ExecApprovalsFile, ExecApprovalsSnapshot } from "./controllers/exec-approvals.ts";
@@ -88,6 +108,7 @@ import type {
 import { type ChatAttachment, type ChatQueueItem, type CronFormState } from "./ui-types.ts";
 import { generateUUID } from "./uuid.ts";
 import type { NostrProfileFormState } from "./views/channels.nostr-profile-form.ts";
+import { pathKey } from "./views/config-form.shared.ts";
 
 declare global {
   interface Window {
@@ -240,12 +261,38 @@ export class OpenClawApp extends LitElement {
   @state() channelsSnapshot: ChannelsStatusSnapshot | null = null;
   @state() channelsError: string | null = null;
   @state() channelsLastSuccess: number | null = null;
+  @state() dingtalkTestBusy = false;
   @state() whatsappLoginMessage: string | null = null;
   @state() whatsappLoginQrDataUrl: string | null = null;
   @state() whatsappLoginConnected: boolean | null = null;
   @state() whatsappBusy = false;
   @state() nostrProfileFormState: NostrProfileFormState | null = null;
   @state() nostrProfileAccountId: string | null = null;
+  @state() channelsPageView: import("./views/channels.types.ts").ChannelsPageView = "list";
+  @state() channelsSelectedId: string | null = null;
+  @state() channelsSelectedAccountId: string | null = null;
+  @state() dingtalkViewMode: import("./views/channels.types.ts").DingTalkViewMode = "details";
+  @state() channelsListSearchQuery = "";
+  @state() channelsListStatusFilter: import("./views/channels.types.ts").ChannelListStatusFilter =
+    "all";
+  @state() channelCreatePickerOpen = false;
+  @state() channelConfigEditorChannelId: string | null = null;
+  @state() channelsRevealedSensitivePaths: Set<string> = new Set();
+  @state() dingtalkAccountEditor:
+    | import("./views/channels.types.ts").DingTalkAccountEditorState
+    | null = null;
+  @state()
+  genericChannelAccountEditor:
+    | import("./views/channels.types.ts").GenericChannelAccountEditorState
+    | null = null;
+
+  @state() dingtalkPreviewLoading = false;
+
+  @state() dingtalkPreviewResult: import("./controllers/channels.ts").DingTalkPreviewResult | null =
+    null;
+
+  @state()
+  dingtalkPreviewPreset: import("./views/channels.types.ts").DingTalkPreviewPreset = "direct";
 
   @state() presenceLoading = false;
   @state() presenceEntries: PresenceEntry[] = [];
@@ -259,8 +306,14 @@ export class OpenClawApp extends LitElement {
   @state() toolsCatalogLoading = false;
   @state() toolsCatalogError: string | null = null;
   @state() toolsCatalogResult: ToolsCatalogResult | null = null;
-  @state() agentsPanel: "overview" | "files" | "tools" | "skills" | "channels" | "cron" =
-    "overview";
+  @state() agentsPanel:
+    | "overview"
+    | "bindings"
+    | "files"
+    | "tools"
+    | "skills"
+    | "channels"
+    | "cron" = "overview";
   @state() agentFilesLoading = false;
   @state() agentFilesError: string | null = null;
   @state() agentFilesList: AgentsFilesListResult | null = null;
@@ -272,9 +325,28 @@ export class OpenClawApp extends LitElement {
   @state() agentIdentityError: string | null = null;
   @state() agentIdentityById: Record<string, AgentIdentityResult> = {};
   @state() agentSkillsLoading = false;
+  @state() agentSkillsLoadingAgentId: string | null = null;
   @state() agentSkillsError: string | null = null;
   @state() agentSkillsReport: SkillStatusReport | null = null;
   @state() agentSkillsAgentId: string | null = null;
+  @state() knowledgeOperatorDrafts: Record<string, string> = {};
+  @state() knowledgeOperatorSavingSourceKey: string | null = null;
+  @state() knowledgeOperatorSaveError: string | null = null;
+  @state() knowledgeDataLoading = false;
+  @state() knowledgeDataError: string | null = null;
+  @state() knowledgeDataResult:
+    | import("./controllers/knowledge.ts").KnowledgeSyncedListResult
+    | null = null;
+  @state() knowledgeDataAgentId: string | null = null;
+  @state() knowledgeClearBusy = false;
+  @state() knowledgeClearAgentId: string | null = null;
+  @state() knowledgeClearError: string | null = null;
+  @state() knowledgeSyncBusy = false;
+  @state() knowledgeSyncAccountId: string | null = null;
+  @state() knowledgeSyncError: string | null = null;
+  @state() knowledgeSyncResult:
+    | import("./controllers/knowledge.ts").DingTalkKnowledgeBaseSyncResult
+    | null = null;
 
   @state() sessionsLoading = false;
   @state() sessionsResult: SessionsListResult | null = null;
@@ -398,6 +470,7 @@ export class OpenClawApp extends LitElement {
   @state() skillsReport: SkillStatusReport | null = null;
   @state() skillsError: string | null = null;
   @state() skillsFilter = "";
+  @state() skillsPage = 0;
   @state() skillEdits: Record<string, string> = {};
   @state() skillsBusyKey: string | null = null;
   @state() skillMessages: Record<string, SkillMessage> = {};
@@ -618,12 +691,136 @@ export class OpenClawApp extends LitElement {
     await handleWhatsAppLogoutInternal(this);
   }
 
-  async handleChannelConfigSave() {
-    await handleChannelConfigSaveInternal(this);
+  async handleChannelConfigSave(): Promise<boolean> {
+    return handleChannelConfigSaveInternal(this);
   }
 
   async handleChannelConfigReload() {
     await handleChannelConfigReloadInternal(this);
+  }
+
+  openChannelCreatePicker() {
+    openChannelCreatePickerInternal(this);
+  }
+
+  closeChannelCreatePicker() {
+    closeChannelCreatePickerInternal(this);
+  }
+
+  startChannelCreate(channelId: string) {
+    startChannelCreateInternal(this, channelId);
+  }
+
+  openChannelConfigEditor(channelId: string) {
+    this.channelsRevealedSensitivePaths = new Set();
+    openChannelConfigEditorInternal(this, channelId);
+  }
+
+  closeChannelConfigEditor() {
+    this.channelsRevealedSensitivePaths = new Set();
+    closeChannelConfigEditorInternal(this);
+  }
+
+  isChannelSensitivePathRevealed(path: Array<string | number>): boolean {
+    const key = pathKey(path);
+    return key ? this.channelsRevealedSensitivePaths.has(key) : false;
+  }
+
+  toggleChannelSensitivePathReveal(path: Array<string | number>) {
+    const key = pathKey(path);
+    if (!key) {
+      return;
+    }
+    const next = new Set(this.channelsRevealedSensitivePaths);
+    if (next.has(key)) {
+      next.delete(key);
+    } else {
+      next.add(key);
+    }
+    this.channelsRevealedSensitivePaths = next;
+  }
+
+  async openDingTalkAccountEditor(
+    mode: import("./views/channels.types.ts").DingTalkAccountEditorMode,
+    accountId?: string | null,
+  ) {
+    if (!this.configForm && this.connected && this.client) {
+      await loadConfig(this);
+    }
+    openDingTalkAccountEditorInternal(this, mode, accountId);
+  }
+
+  closeDingTalkAccountEditor() {
+    closeDingTalkAccountEditorInternal(this);
+  }
+
+  async openGenericChannelAccountEditor(
+    channelId: string,
+    mode: import("./views/channels.types.ts").GenericChannelAccountEditorMode,
+    accountId?: string | null,
+  ) {
+    this.channelsRevealedSensitivePaths = new Set();
+    if (!this.configForm && this.connected && this.client) {
+      await loadConfig(this);
+    }
+    openGenericChannelAccountEditorInternal(this, channelId, mode, accountId);
+  }
+
+  closeGenericChannelAccountEditor() {
+    this.channelsRevealedSensitivePaths = new Set();
+    closeGenericChannelAccountEditorInternal(this);
+  }
+
+  updateGenericChannelAccountEditorAccountId(value: string) {
+    updateGenericChannelAccountEditorAccountIdInternal(this, value);
+  }
+
+  updateGenericChannelAccountEditorDefault(value: boolean) {
+    updateGenericChannelAccountEditorDefaultInternal(this, value);
+  }
+
+  patchGenericChannelAccountEditor(path: Array<string | number>, value: unknown) {
+    patchGenericChannelAccountEditorInternal(this, path, value);
+  }
+
+  updateDingTalkAccountEditorField(
+    field: keyof import("./views/channels.types.ts").DingTalkAccountEditorValues,
+    value: string | boolean,
+  ) {
+    updateDingTalkAccountEditorFieldInternal(this, field, value);
+  }
+
+  toggleDingTalkAccountEditorSensitiveField(
+    field: import("./views/channels.types.ts").DingTalkAccountEditorSensitiveField,
+  ) {
+    toggleDingTalkAccountEditorSensitiveFieldInternal(this, field);
+  }
+
+  async saveDingTalkAccountEditor() {
+    await saveDingTalkAccountEditorInternal(this);
+  }
+
+  async saveGenericChannelAccountEditor() {
+    await saveGenericChannelAccountEditorInternal(this);
+  }
+
+  async deleteDingTalkAccount(accountId: string) {
+    await deleteDingTalkAccountInternal(this, accountId);
+  }
+
+  async deleteGenericChannelAccount(channelId: string, accountId: string) {
+    await deleteGenericChannelAccountInternal(this, channelId, accountId);
+  }
+
+  async previewDingTalkPolicy(
+    accountId: string | null,
+    preset: import("./views/channels.types.ts").DingTalkPreviewPreset,
+  ) {
+    await previewDingTalkPolicyInternal(this, accountId, preset);
+  }
+
+  setDingTalkPreviewPreset(preset: import("./views/channels.types.ts").DingTalkPreviewPreset) {
+    this.dingtalkPreviewPreset = preset;
   }
 
   handleNostrProfileEdit(accountId: string, profile: NostrProfile | null) {

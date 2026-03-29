@@ -23,6 +23,7 @@ import type { ChatType } from "../../channels/chat-type.js";
 import { getChannelPlugin } from "../../channels/plugins/index.js";
 import type { ChannelId } from "../../channels/plugins/types.js";
 import type { OpenClawConfig } from "../../config/config.js";
+import { resolveDmScope } from "../../config/dm-scope.js";
 import { recordSessionMetaFromInbound, resolveStorePath } from "../../config/sessions.js";
 import { isWhatsAppGroupJid, normalizeWhatsAppTarget } from "../../plugin-sdk/whatsapp-shared.js";
 import { buildAgentSessionKey, type RoutePeer } from "../../routing/resolve-route.js";
@@ -117,7 +118,7 @@ function buildBaseSessionKey(params: {
     channel: params.channel,
     accountId: params.accountId,
     peer: params.peer,
-    dmScope: params.cfg.session?.dmScope ?? "main",
+    dmScope: resolveDmScope(params.cfg.session?.dmScope),
     identityLinks: params.cfg.session?.identityLinks,
   });
 }

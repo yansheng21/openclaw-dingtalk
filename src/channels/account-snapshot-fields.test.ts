@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 import { projectSafeChannelAccountSnapshotFields } from "./account-snapshot-fields.js";
 
 describe("projectSafeChannelAccountSnapshotFields", () => {
-  it("omits webhook and public-key style fields from generic snapshots", () => {
+  it("projects common safe snapshot fields without public-key style fields", () => {
     const snapshot = projectSafeChannelAccountSnapshotFields({
       name: "Primary",
+      groupPolicy: "allowlist",
+      requireMention: true,
+      groupAllowFrom: ["g1", "g2"],
       tokenSource: "config",
       tokenStatus: "configured_unavailable",
       signingSecretSource: "config", // pragma: allowlist secret
@@ -18,10 +21,15 @@ describe("projectSafeChannelAccountSnapshotFields", () => {
 
     expect(snapshot).toEqual({
       name: "Primary",
+      groupPolicy: "allowlist",
+      requireMention: true,
+      groupAllowFrom: ["g1", "g2"],
       tokenSource: "config",
       tokenStatus: "configured_unavailable",
       signingSecretSource: "config", // pragma: allowlist secret
       signingSecretStatus: "configured_unavailable", // pragma: allowlist secret
+      webhookUrl: "https://example.com/webhook",
+      webhookPath: "/webhook",
     });
   });
 

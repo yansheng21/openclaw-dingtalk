@@ -1,0 +1,10 @@
+{
+  "id": "oa-tools",
+  "name": "OA Tools",
+  "description": "OA and approval-related tools for DingClaw.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

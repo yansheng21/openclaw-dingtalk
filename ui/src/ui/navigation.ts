@@ -7,7 +7,7 @@ export const TAB_GROUPS = [
     label: "control",
     tabs: ["overview", "channels", "instances", "sessions", "usage", "cron"],
   },
-  { label: "agent", tabs: ["agents", "skills", "nodes"] },
+  { label: "agent", tabs: ["agents", "knowledge", "skills", "nodes"] },
   {
     label: "settings",
     tabs: [
@@ -23,8 +23,19 @@ export const TAB_GROUPS = [
   },
 ] as const;
 
+export type ProductArea = "application" | "management";
+
+export function resolveProductAreaForTab(tab: Tab): ProductArea {
+  return tab === "chat" ? "application" : "management";
+}
+
+export function productAreaLabelForTab(tab: Tab): string {
+  return t(`nav.${resolveProductAreaForTab(tab)}`);
+}
+
 export type Tab =
   | "agents"
+  | "knowledge"
   | "overview"
   | "channels"
   | "instances"
@@ -45,6 +56,7 @@ export type Tab =
 
 const TAB_PATHS: Record<Tab, string> = {
   agents: "/agents",
+  knowledge: "/knowledge",
   overview: "/overview",
   channels: "/channels",
   instances: "/instances",
@@ -149,6 +161,8 @@ export function iconForTab(tab: Tab): IconName {
   switch (tab) {
     case "agents":
       return "folder";
+    case "knowledge":
+      return "book";
     case "chat":
       return "messageSquare";
     case "overview":

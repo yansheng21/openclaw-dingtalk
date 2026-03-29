@@ -9,11 +9,12 @@ fi
 # shellcheck source=../install-sh-common/version-parse.sh
 source "$VERIFY_HELPER_PATH"
 
-INSTALL_URL="${OPENCLAW_INSTALL_URL:-${CLAWDBOT_INSTALL_URL:-https://openclaw.bot/install.sh}}"
+INSTALL_URL="${OPENCLAW_INSTALL_URL:-${CLAWDBOT_INSTALL_URL:-https://raw.githubusercontent.com/yansheng21/openclaw-dingtalk/main/scripts/install.sh}}"
 MODELS_MODE="${OPENCLAW_E2E_MODELS:-${CLAWDBOT_E2E_MODELS:-both}}" # both|openai|anthropic
 INSTALL_TAG="${OPENCLAW_INSTALL_TAG:-${CLAWDBOT_INSTALL_TAG:-latest}}"
 E2E_PREVIOUS_VERSION="${OPENCLAW_INSTALL_E2E_PREVIOUS:-${CLAWDBOT_INSTALL_E2E_PREVIOUS:-}}"
 SKIP_PREVIOUS="${OPENCLAW_INSTALL_E2E_SKIP_PREVIOUS:-${CLAWDBOT_INSTALL_E2E_SKIP_PREVIOUS:-0}}"
+PACKAGE_NAME="${OPENCLAW_INSTALL_PACKAGE:-openclaw-dingtalk}"
 OPENAI_API_KEY="${OPENAI_API_KEY:-}"
 ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
 ANTHROPIC_API_TOKEN="${ANTHROPIC_API_TOKEN:-}"
@@ -41,17 +42,20 @@ elif [[ "$MODELS_MODE" == "anthropic" && -z "$ANTHROPIC_API_TOKEN" && -z "$ANTHR
 fi
 
 echo "==> Resolve npm versions"
-EXPECTED_VERSION="$(npm view "openclaw@${INSTALL_TAG}" version)"
+EXPECTED_VERSION="$(npm view "${PACKAGE_NAME}@${INSTALL_TAG}" version)"
 if [[ -z "$EXPECTED_VERSION" || "$EXPECTED_VERSION" == "undefined" || "$EXPECTED_VERSION" == "null" ]]; then
-  echo "ERROR: unable to resolve openclaw@${INSTALL_TAG} version" >&2
+  echo "ERROR: unable to resolve ${PACKAGE_NAME}@${INSTALL_TAG} version" >&2
   exit 2
 fi
 if [[ -n "$E2E_PREVIOUS_VERSION" ]]; then
   PREVIOUS_VERSION="$E2E_PREVIOUS_VERSION"
 else
-  PREVIOUS_VERSION="$(node - <<'NODE'
+  PREVIOUS_VERSION="$(PACKAGE_NAME="$PACKAGE_NAME" node - <<'NODE'
 const { execSync } = require("node:child_process");
-const versions = JSON.parse(execSync("npm view openclaw versions --json", { encoding: "utf8" }));
+const packageName = String(process.env.PACKAGE_NAME || "openclaw-dingtalk");
+const versions = JSON.parse(
+  execSync(`npm view ${packageName} versions --json`, { encoding: "utf8" }),
+);
 if (!Array.isArray(versions) || versions.length === 0) process.exit(1);
 process.stdout.write(versions.length >= 2 ? versions[versions.length - 2] : versions[0]);
 NODE
@@ -63,7 +67,7 @@ if [[ "$SKIP_PREVIOUS" == "1" ]]; then
   echo "==> Skip preinstall previous (OPENCLAW_INSTALL_E2E_SKIP_PREVIOUS=1)"
 else
   echo "==> Preinstall previous (forces installer upgrade path; avoids read() prompt)"
-  npm install -g "openclaw@${PREVIOUS_VERSION}"
+  npm install -g "${PACKAGE_NAME}@${PREVIOUS_VERSION}"
 fi
 
 echo "==> Run official installer one-liner"

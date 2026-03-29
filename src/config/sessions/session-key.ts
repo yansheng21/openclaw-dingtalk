@@ -1,9 +1,12 @@
 import type { MsgContext } from "../../auto-reply/templating.js";
+import { DEFAULT_DM_SCOPE } from "../dm-scope.js";
+import { buildAgentSessionKey } from "../../routing/resolve-route.js";
 import {
   buildAgentMainSessionKey,
   DEFAULT_AGENT_ID,
   normalizeMainKey,
 } from "../../routing/session-key.js";
+import { normalizeConversationText } from "../../acp/conversation-id.js";
 import { normalizeE164 } from "../../utils.js";
 import { normalizeExplicitSessionKey } from "./explicit-session-key-normalization.js";
 import { resolveGroupSessionKey } from "./group.js";
@@ -23,8 +26,9 @@ export function deriveSessionKey(scope: SessionScope, ctx: MsgContext) {
 }
 
 /**
- * Resolve the session key with a canonical direct-chat bucket (default: "main").
- * All non-group direct chats collapse to this bucket; groups stay isolated.
+ * Resolve the session key.
+ * Direct chats with channel context use isolated per-sender buckets; legacy
+ * callers without channel context still fall back to the canonical main key.
  */
 export function resolveSessionKey(scope: SessionScope, ctx: MsgContext, mainKey?: string) {
   const explicit = ctx.SessionKey?.trim();
@@ -42,6 +46,21 @@ export function resolveSessionKey(scope: SessionScope, ctx: MsgContext, mainKey?
   });
   const isGroup = raw.includes(":group:") || raw.includes(":channel:");
   if (!isGroup) {
+    const channel =
+      normalizeConversationText(
+        (ctx.OriginatingChannel as string | undefined) ?? ctx.Surface ?? ctx.Provider ?? "",
+      )
+        .trim()
+        .toLowerCase() || "";
+    if (channel) {
+      return buildAgentSessionKey({
+        agentId: DEFAULT_AGENT_ID,
+        channel,
+        accountId: ctx.AccountId,
+        peer: { kind: "direct", id: raw },
+        dmScope: DEFAULT_DM_SCOPE,
+      });
+    }
     return canonical;
   }
   return `agent:${DEFAULT_AGENT_ID}:${raw}`;

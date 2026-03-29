@@ -6,14 +6,13 @@ describe("Discord Session Key Continuity", () => {
   const channel = "discord";
   const accountId = "default";
 
-  it("generates distinct keys for DM vs Channel (dmScope=main)", () => {
-    // Scenario: Default config (dmScope=main)
+  it("generates distinct keys for DM vs Channel (default secure dmScope)", () => {
+    // Scenario: Enterprise default config (dmScope=per-channel-peer)
     const dmKey = buildAgentSessionKey({
       agentId,
       channel,
       accountId,
       peer: { kind: "direct", id: "user123" },
-      dmScope: "main",
     });
 
     const groupKey = buildAgentSessionKey({
@@ -21,10 +20,9 @@ describe("Discord Session Key Continuity", () => {
       channel,
       accountId,
       peer: { kind: "channel", id: "channel456" },
-      dmScope: "main",
     });
 
-    expect(dmKey).toBe("agent:main:main");
+    expect(dmKey).toBe("agent:main:discord:direct:user123");
     expect(groupKey).toBe("agent:main:discord:channel:channel456");
     expect(dmKey).not.toBe(groupKey);
   });

@@ -182,22 +182,9 @@ export function createFollowupRunner(params: {
           currentMessageId,
         });
       };
-      const sendCompactionNotice = async (text: string) => {
-        try {
-          const noticePayloads = await applyFollowupReplyThreading([
-            {
-              text,
-              replyToCurrent: true,
-              isCompactionNotice: true,
-            },
-          ]);
-          if (noticePayloads.length === 0) {
-            return;
-          }
-          await sendFollowupPayloads(noticePayloads, queued);
-        } catch (err) {
-          logVerbose(`followup queue: compaction notice failed (non-fatal): ${String(err)}`);
-        }
+      const sendCompactionNotice = async (_text: string) => {
+        // Suppress user-facing compaction chatter; keep compaction as an internal detail.
+        return;
       };
       let autoCompactionCount = 0;
       let runResult: Awaited<
@@ -391,7 +378,7 @@ export function createFollowupRunner(params: {
       let finalPayloads = suppressMessagingToolReplies ? [] : mediaFilteredPayloads;
 
       if (autoCompactionCount > 0) {
-        const count = await incrementRunCompactionCount({
+        await incrementRunCompactionCount({
           sessionEntry,
           sessionStore,
           sessionKey,
@@ -400,21 +387,6 @@ export function createFollowupRunner(params: {
           lastCallUsage: runResult.meta?.agentMeta?.lastCallUsage,
           contextTokensUsed,
         });
-        const suffix = typeof count === "number" ? ` (count ${count})` : "";
-        const completionText =
-          queued.run.verboseLevel && queued.run.verboseLevel !== "off"
-            ? `🧹 Auto-compaction complete${suffix}.`
-            : `✅ Context compacted${suffix}.`;
-        finalPayloads = [
-          ...(await applyFollowupReplyThreading([
-            {
-              text: completionText,
-              replyToCurrent: true,
-              isCompactionNotice: true,
-            },
-          ])),
-          ...finalPayloads,
-        ];
       }
 
       if (finalPayloads.length === 0) {

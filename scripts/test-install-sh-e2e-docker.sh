@@ -3,7 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 IMAGE_NAME="${OPENCLAW_INSTALL_E2E_IMAGE:-${CLAWDBOT_INSTALL_E2E_IMAGE:-openclaw-install-e2e:local}}"
-INSTALL_URL="${OPENCLAW_INSTALL_URL:-${CLAWDBOT_INSTALL_URL:-https://openclaw.bot/install.sh}}"
+INSTALL_URL="${OPENCLAW_INSTALL_URL:-${CLAWDBOT_INSTALL_URL:-https://raw.githubusercontent.com/yansheng21/openclaw-dingtalk/main/scripts/install.sh}}"
+INSTALL_PACKAGE="${OPENCLAW_INSTALL_PACKAGE:-${CLAWDBOT_INSTALL_PACKAGE:-openclaw-dingtalk}}"
 
 OPENAI_API_KEY="${OPENAI_API_KEY:-}"
 ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
@@ -19,6 +20,7 @@ docker build \
 echo "==> Run E2E installer test"
 docker run --rm \
   -e OPENCLAW_INSTALL_URL="$INSTALL_URL" \
+  -e OPENCLAW_INSTALL_PACKAGE="$INSTALL_PACKAGE" \
   -e OPENCLAW_INSTALL_TAG="${OPENCLAW_INSTALL_TAG:-${CLAWDBOT_INSTALL_TAG:-latest}}" \
   -e OPENCLAW_E2E_MODELS="$OPENCLAW_E2E_MODELS" \
   -e OPENCLAW_INSTALL_E2E_PREVIOUS="${OPENCLAW_INSTALL_E2E_PREVIOUS:-${CLAWDBOT_INSTALL_E2E_PREVIOUS:-}}" \

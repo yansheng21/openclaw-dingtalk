@@ -52,6 +52,28 @@ function readStringArray(record: Record<string, unknown>, key: string): string[]
   return normalized.length > 0 ? normalized : undefined;
 }
 
+function readTrimmedStringLike(record: Record<string, unknown>, key: string): string | undefined {
+  const value = record[key];
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return readTrimmedString(record, key);
+}
+
+function readConfiguredSecretLike(record: Record<string, unknown>, key: string): boolean | undefined {
+  if (!Object.prototype.hasOwnProperty.call(record, key)) {
+    return undefined;
+  }
+  const value = record[key];
+  if (typeof value === "string") {
+    return value.trim().length > 0;
+  }
+  if (value && typeof value === "object") {
+    return true;
+  }
+  return false;
+}
+
 function readCredentialStatus(record: Record<string, unknown>, key: CredentialStatusKey) {
   const value = record[key];
   return value === "available" || value === "configured_unavailable" || value === "missing"
@@ -183,6 +205,9 @@ export function projectSafeChannelAccountSnapshotFields(
 
   return {
     ...(readTrimmedString(record, "name") ? { name: readTrimmedString(record, "name") } : {}),
+    ...(readTrimmedString(record, "displayName")
+      ? { displayName: readTrimmedString(record, "displayName") }
+      : {}),
     ...(readBoolean(record, "linked") !== undefined
       ? { linked: readBoolean(record, "linked") }
       : {}),
@@ -205,8 +230,29 @@ export function projectSafeChannelAccountSnapshotFields(
     ...(readTrimmedString(record, "dmPolicy")
       ? { dmPolicy: readTrimmedString(record, "dmPolicy") }
       : {}),
+    ...(readTrimmedString(record, "groupPolicy")
+      ? { groupPolicy: readTrimmedString(record, "groupPolicy") }
+      : {}),
+    ...(readBoolean(record, "requireMention") !== undefined
+      ? { requireMention: readBoolean(record, "requireMention") }
+      : {}),
     ...(readStringArray(record, "allowFrom")
       ? { allowFrom: readStringArray(record, "allowFrom") }
+      : {}),
+    ...(readStringArray(record, "groupAllowFrom")
+      ? { groupAllowFrom: readStringArray(record, "groupAllowFrom") }
+      : {}),
+    ...(readTrimmedStringLike(record, "clientId")
+      ? { clientId: readTrimmedStringLike(record, "clientId") }
+      : {}),
+    ...(readConfiguredSecretLike(record, "clientSecret") !== undefined
+      ? { clientSecretConfigured: readConfiguredSecretLike(record, "clientSecret") }
+      : {}),
+    ...(readTrimmedString(record, "webhookPath")
+      ? { webhookPath: readTrimmedString(record, "webhookPath") }
+      : {}),
+    ...(readTrimmedString(record, "webhookUrl")
+      ? { webhookUrl: readTrimmedString(record, "webhookUrl") }
       : {}),
     ...projectCredentialSnapshotFields(account),
     ...(readTrimmedString(record, "baseUrl")

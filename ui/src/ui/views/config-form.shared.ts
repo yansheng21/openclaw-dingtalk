@@ -1,4 +1,6 @@
+import { t } from "../../i18n/index.ts";
 import type { ConfigUiHint, ConfigUiHints } from "../types.ts";
+import { localizeConfigHint } from "./config-form.i18n.ts";
 
 export type JsonSchema = {
   type?: string | string[];
@@ -62,7 +64,7 @@ export function hintForPath(path: Array<string | number>, hints: ConfigUiHints) 
   const key = pathKey(path);
   const direct = hints[key];
   if (direct) {
-    return direct;
+    return localizeConfigHint({ actualPath: key, matchKey: key, hint: direct });
   }
   const segments = key.split(".");
   for (const [hintKey, hint] of Object.entries(hints)) {
@@ -81,7 +83,7 @@ export function hintForPath(path: Array<string | number>, hints: ConfigUiHints) 
       }
     }
     if (match) {
-      return hint;
+      return localizeConfigHint({ actualPath: key, matchKey: hintKey, hint });
     }
   }
   return undefined;
@@ -117,8 +119,15 @@ const SENSITIVE_PATTERNS = [
 ];
 
 const ENV_VAR_PLACEHOLDER_PATTERN = /^\$\{[^}]*\}$/;
+export const REDACTED_SENTINEL = "__OPENCLAW_REDACTED__";
 
-export const REDACTED_PLACEHOLDER = "[redacted - click reveal to view]";
+export function getRedactedPlaceholder(): string {
+  return t("configForm.sensitive.redactedPlaceholder");
+}
+
+export function isRedactedSentinel(value: unknown): boolean {
+  return value === REDACTED_SENTINEL;
+}
 
 function isEnvVarPlaceholder(value: string): boolean {
   return ENV_VAR_PLACEHOLDER_PATTERN.test(value.trim());
@@ -131,6 +140,9 @@ export function isSensitiveConfigPath(path: string): boolean {
 }
 
 function isSensitiveLeafValue(value: unknown): boolean {
+  if (isRedactedSentinel(value)) {
+    return true;
+  }
   if (typeof value === "string") {
     return value.trim().length > 0 && !isEnvVarPlaceholder(value);
   }

@@ -36,6 +36,13 @@ vi.mock("./embeddings.js", () => {
         model: options.model,
         outputDimensionality: options.outputDimensionality,
       });
+      if (options.provider === "none") {
+        return {
+          requestedProvider: "none",
+          provider: null,
+          providerUnavailableReason: "disabled for test",
+        };
+      }
       const providerId = options.provider === "gemini" ? "gemini" : "mock";
       const model = options.model ?? "mock-embed";
       return {
@@ -205,7 +212,7 @@ describe("memory index", () => {
     extraPaths?: string[];
     sources?: Array<"memory" | "sessions">;
     sessionMemory?: boolean;
-    provider?: "openai" | "gemini";
+    provider?: "openai" | "gemini" | "none";
     model?: string;
     outputDimensionality?: number;
     multimodal?: {
@@ -308,6 +315,42 @@ describe("memory index", () => {
           }),
         ]),
       );
+    } finally {
+      await manager.close?.();
+    }
+  });
+
+  it("indexes memory files in FTS-only mode and searches synced markdown", async () => {
+    const cfg = createCfg({
+      storePath: path.join(workspaceDir, `index-fts-only-${randomUUID()}.sqlite`),
+      provider: "none",
+      minScore: 0,
+    });
+    const manager = await getFreshManager(cfg);
+    try {
+      const initialStatus = manager.status();
+      if (!initialStatus.fts?.available) {
+        return;
+      }
+      await manager.sync({ reason: "test", force: true });
+      const results = await manager.search("alpha");
+      expect(results.length).toBeGreaterThan(0);
+      expect(results[0]?.path).toContain("memory/2026-01-12.md");
+
+      const status = manager.status();
+      expect(status.provider).toBe("none");
+      expect(status.custom?.searchMode).toBe("fts-only");
+      expect(status.sourceCounts).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            source: "memory",
+            files: expect.any(Number),
+            chunks: expect.any(Number),
+          }),
+        ]),
+      );
+      expect(status.files).toBeGreaterThan(0);
+      expect(status.chunks).toBeGreaterThan(0);
     } finally {
       await manager.close?.();
     }

@@ -58,7 +58,7 @@ export function handleConnected(host: LifecycleHost) {
     connectGateway(host as unknown as Parameters<typeof connectGateway>[0]);
   });
   startNodesPolling(host as unknown as Parameters<typeof startNodesPolling>[0]);
-  if (host.tab === "logs") {
+  if (host.tab === "logs" || host.tab === "channels") {
     startLogsPolling(host as unknown as Parameters<typeof startLogsPolling>[0]);
   }
   if (host.tab === "debug") {
@@ -111,7 +111,7 @@ export function handleUpdated(host: LifecycleHost, changed: Map<PropertyKey, unk
     );
   }
   if (
-    host.tab === "logs" &&
+    (host.tab === "logs" || host.tab === "channels") &&
     (changed.has("logsEntries") || changed.has("logsAutoFollow") || changed.has("tab"))
   ) {
     if (host.logsAutoFollow && host.logsAtBottom) {

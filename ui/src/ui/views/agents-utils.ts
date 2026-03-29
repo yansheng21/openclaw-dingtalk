@@ -1,4 +1,5 @@
 import { html } from "lit";
+import { t } from "../../i18n/index.ts";
 import {
   expandToolGroups,
   normalizeToolName,
@@ -121,19 +122,116 @@ export const PROFILE_OPTIONS = [
   { id: "full", label: "Full" },
 ] as const;
 
+function localizeToolSectionLabel(id: string, fallback: string) {
+  switch (id) {
+    case "fs":
+      return t("agentsPage.tools.sections.fs");
+    case "runtime":
+      return t("agentsPage.tools.sections.runtime");
+    case "web":
+      return t("agentsPage.tools.sections.web");
+    case "memory":
+      return t("agentsPage.tools.sections.memory");
+    case "sessions":
+      return t("agentsPage.tools.sections.sessions");
+    case "ui":
+      return t("agentsPage.tools.sections.ui");
+    case "messaging":
+      return t("agentsPage.tools.sections.messaging");
+    case "automation":
+      return t("agentsPage.tools.sections.automation");
+    case "nodes":
+      return t("agentsPage.tools.sections.nodes");
+    case "agents":
+      return t("agentsPage.tools.sections.agents");
+    case "media":
+      return t("agentsPage.tools.sections.media");
+    default:
+      return fallback;
+  }
+}
+
+function localizeToolDescription(id: string, fallback: string) {
+  switch (id) {
+    case "read":
+      return t("agentsPage.tools.toolDescriptions.read");
+    case "write":
+      return t("agentsPage.tools.toolDescriptions.write");
+    case "edit":
+      return t("agentsPage.tools.toolDescriptions.edit");
+    case "apply_patch":
+      return t("agentsPage.tools.toolDescriptions.applyPatch");
+    case "exec":
+      return t("agentsPage.tools.toolDescriptions.exec");
+    case "process":
+      return t("agentsPage.tools.toolDescriptions.process");
+    case "web_search":
+      return t("agentsPage.tools.toolDescriptions.webSearch");
+    case "web_fetch":
+      return t("agentsPage.tools.toolDescriptions.webFetch");
+    case "memory_search":
+      return t("agentsPage.tools.toolDescriptions.memorySearch");
+    case "memory_get":
+      return t("agentsPage.tools.toolDescriptions.memoryGet");
+    case "sessions_list":
+      return t("agentsPage.tools.toolDescriptions.sessionsList");
+    case "sessions_history":
+      return t("agentsPage.tools.toolDescriptions.sessionsHistory");
+    case "sessions_send":
+      return t("agentsPage.tools.toolDescriptions.sessionsSend");
+    case "sessions_spawn":
+      return t("agentsPage.tools.toolDescriptions.sessionsSpawn");
+    case "session_status":
+      return t("agentsPage.tools.toolDescriptions.sessionStatus");
+    case "browser":
+      return t("agentsPage.tools.toolDescriptions.browser");
+    case "canvas":
+      return t("agentsPage.tools.toolDescriptions.canvas");
+    case "message":
+      return t("agentsPage.tools.toolDescriptions.message");
+    case "cron":
+      return t("agentsPage.tools.toolDescriptions.cron");
+    case "gateway":
+      return t("agentsPage.tools.toolDescriptions.gateway");
+    case "nodes":
+      return t("agentsPage.tools.toolDescriptions.nodes");
+    case "agents_list":
+      return t("agentsPage.tools.toolDescriptions.agentsList");
+    case "image":
+      return t("agentsPage.tools.toolDescriptions.image");
+    default:
+      return fallback;
+  }
+}
+
+function localizeProfileLabel(id: string, fallback: string) {
+  switch (id) {
+    case "minimal":
+      return t("agentsPage.tools.presets.minimal");
+    case "coding":
+      return t("agentsPage.tools.presets.coding");
+    case "messaging":
+      return t("agentsPage.tools.presets.messaging");
+    case "full":
+      return t("agentsPage.tools.presets.full");
+    default:
+      return fallback;
+  }
+}
+
 export function resolveToolSections(
   toolsCatalogResult: ToolsCatalogResult | null,
 ): AgentToolSection[] {
   if (toolsCatalogResult?.groups?.length) {
     return toolsCatalogResult.groups.map((group) => ({
       id: group.id,
-      label: group.label,
+      label: localizeToolSectionLabel(group.id, group.label),
       source: group.source,
       pluginId: group.pluginId,
       tools: group.tools.map((tool) => ({
         id: tool.id,
         label: tool.label,
-        description: tool.description,
+        description: localizeToolDescription(tool.id, tool.description),
         source: tool.source,
         pluginId: tool.pluginId,
         optional: tool.optional,
@@ -141,16 +239,29 @@ export function resolveToolSections(
       })),
     }));
   }
-  return FALLBACK_TOOL_SECTIONS;
+  return FALLBACK_TOOL_SECTIONS.map((section) => ({
+    ...section,
+    label: localizeToolSectionLabel(section.id, section.label),
+    tools: section.tools.map((tool) => ({
+      ...tool,
+      description: localizeToolDescription(tool.id, tool.description),
+    })),
+  }));
 }
 
 export function resolveToolProfileOptions(
   toolsCatalogResult: ToolsCatalogResult | null,
 ): readonly ToolCatalogProfile[] | typeof PROFILE_OPTIONS {
   if (toolsCatalogResult?.profiles?.length) {
-    return toolsCatalogResult.profiles;
+    return toolsCatalogResult.profiles.map((profile) => ({
+      ...profile,
+      label: localizeProfileLabel(profile.id, profile.label),
+    }));
   }
-  return PROFILE_OPTIONS;
+  return PROFILE_OPTIONS.map((profile) => ({
+    ...profile,
+    label: localizeProfileLabel(profile.id, profile.label),
+  }));
 }
 
 type ToolPolicy = {
@@ -269,7 +380,7 @@ export function resolveAgentEmoji(
 }
 
 export function agentBadgeText(agentId: string, defaultId: string | null) {
-  return defaultId && agentId === defaultId ? "default" : null;
+  return defaultId && agentId === defaultId ? t("agentsPage.toolbar.defaultBadge") : null;
 }
 
 export function agentAvatarHue(id: string): number {
@@ -338,7 +449,9 @@ export function buildAgentContext(
     agent.name?.trim() ||
     config.entry?.name ||
     agent.id;
-  const identityAvatar = resolveAgentAvatarUrl(agent, agentIdentity) ? "custom" : "—";
+  const identityAvatar = resolveAgentAvatarUrl(agent, agentIdentity)
+    ? t("agentsPage.context.customAvatar")
+    : "—";
   const skillFilter = Array.isArray(config.entry?.skills) ? config.entry?.skills : null;
   const skillCount = skillFilter?.length ?? null;
   return {
@@ -346,7 +459,9 @@ export function buildAgentContext(
     model: modelLabel,
     identityName,
     identityAvatar,
-    skillsLabel: skillFilter ? `${skillCount} selected` : "all skills",
+    skillsLabel: skillFilter
+      ? t("agentsPage.shared.selectedCount", { count: String(skillCount ?? 0) })
+      : t("agentsPage.shared.allSkills"),
     isDefault: Boolean(defaultId && agent.id === defaultId),
   };
 }
@@ -363,14 +478,16 @@ export function resolveModelLabel(model?: unknown): string {
     const primary = record.primary?.trim();
     if (primary) {
       const fallbackCount = Array.isArray(record.fallbacks) ? record.fallbacks.length : 0;
-      return fallbackCount > 0 ? `${primary} (+${fallbackCount} fallback)` : primary;
+      return fallbackCount > 0
+        ? `${primary} ${t("agentsPage.overview.fallbackCount", { count: String(fallbackCount) })}`
+        : primary;
     }
   }
   return "-";
 }
 
 export function normalizeModelValue(label: string): string {
-  const match = label.match(/^(.+) \(\+\d+ fallback\)$/);
+  const match = label.match(/^(.+) \(\+\d+ [^)]+\)$/);
   return match ? match[1] : label;
 }
 
@@ -578,11 +695,14 @@ export function buildModelOptions(
   const options = resolveConfiguredModels(configForm);
   const hasCurrent = current ? options.some((option) => option.value === current) : false;
   if (current && !hasCurrent) {
-    options.unshift({ value: current, label: `Current (${current})` });
+    options.unshift({
+      value: current,
+      label: t("agentsPage.overview.currentModel", { value: current }),
+    });
   }
   if (options.length === 0) {
     return html`
-      <option value="" disabled>No configured models</option>
+      <option value="" disabled>${t("agentsPage.overview.noConfiguredModels")}</option>
     `;
   }
   return options.map((option) => html`<option value=${option.value}>${option.label}</option>`);

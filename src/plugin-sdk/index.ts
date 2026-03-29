@@ -79,3 +79,31 @@ export { emptyPluginConfigSchema } from "../plugins/config-schema.js";
 export { registerContextEngine } from "../context-engine/registry.js";
 export { delegateCompactionToRuntime } from "../context-engine/delegate.js";
 export { onDiagnosticEvent } from "../infra/diagnostic-events.js";
+
+// Legacy root-entry compat for external plugins that still import
+// `openclaw/plugin-sdk`. New bundled plugins must keep using focused subpaths.
+// These exports intentionally cover the historical runtime symbols that would
+// otherwise crash older channel plugins when the root entry is resolved.
+export { DEFAULT_ACCOUNT_ID } from "../routing/session-key.js";
+export { createAccountListHelpers } from "../channels/plugins/account-helpers.js";
+export { resolveChannelMediaMaxBytes } from "../channels/plugins/media-limits.js";
+export { createReplyPrefixOptions } from "../channels/reply-prefix.js";
+export { createTypingCallbacks } from "../channels/typing.js";
+export { logInboundDrop, logTypingFailure } from "../channels/logging.js";
+export { resolveControlCommandGate } from "../channels/command-gating.js";
+export {
+  DEFAULT_GROUP_HISTORY_LIMIT,
+  buildPendingHistoryContextFromMap,
+  clearHistoryEntriesIfEnabled,
+  recordPendingHistoryEntryIfEnabled,
+} from "../auto-reply/reply/history.js";
+export { isDangerousNameMatchingEnabled } from "../config/dangerous-name-matching.js";
+export {
+  resolveAllowlistProviderRuntimeGroupPolicy,
+  resolveDefaultGroupPolicy,
+  warnMissingProviderGroupPolicyFallbackOnce,
+} from "../config/runtime-group-policy.js";
+export { resolveDmGroupAccessWithLists } from "../security/dm-policy-shared.js";
+export { normalizePluginHttpPath } from "../plugins/http-path.js";
+export { registerPluginHttpRoute } from "../plugins/http-registry.js";
+export { buildAgentMediaPayload } from "./agent-media-payload.js";

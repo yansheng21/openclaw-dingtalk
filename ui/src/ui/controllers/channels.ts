@@ -26,6 +26,92 @@ export async function loadChannels(state: ChannelsState, probe: boolean) {
   }
 }
 
+export async function testDingTalkEnterprise(
+  state: ChannelsState,
+  accountId?: string | null,
+) {
+  if (!state.client || !state.connected || state.dingtalkTestBusy) {
+    return;
+  }
+  state.dingtalkTestBusy = true;
+  state.channelsError = null;
+  try {
+    await state.client.request("dingtalk-enterprise.test", {
+      ...(typeof accountId === "string" && accountId.trim() ? { accountId } : {}),
+      timeoutMs: 8000,
+    });
+  } catch (err) {
+    state.channelsError = String(err);
+  } finally {
+    state.dingtalkTestBusy = false;
+  }
+}
+
+export type DingTalkPreviewKind = "message" | "card" | "oa";
+
+export type DingTalkPreviewResult = {
+  accepted: boolean;
+  claims: {
+    channel: string;
+    accountId: string;
+    subjectId: string;
+    displayName?: string | null;
+    conversationId?: string | null;
+    chatType: "direct" | "group" | "workflow";
+    mentioned: boolean;
+    riskTier: string;
+  };
+  route: {
+    allowed: boolean;
+    route: string;
+    reason: string;
+  };
+  toolPolicy: {
+    allowed: boolean;
+    allowedToolClasses: string[];
+    deniedToolClasses: string[];
+    reason?: string | null;
+  };
+  approval: {
+    required: boolean;
+    level: string;
+    requestId?: string | null;
+  };
+  auditEvent: {
+    eventId: string;
+    outcome: string;
+    summary: string;
+  };
+};
+
+export async function previewDingTalkPolicy(
+  state: ChannelsState,
+  params: {
+    accountId?: string | null;
+    kind: DingTalkPreviewKind;
+    body: Record<string, unknown>;
+  },
+): Promise<DingTalkPreviewResult | null> {
+  if (!state.client || !state.connected) {
+    return null;
+  }
+  try {
+    const result = await state.client.request<DingTalkPreviewResult>(
+      "dingtalk-enterprise.preview-policy",
+      {
+        accountId: params.accountId,
+        kind: params.kind,
+        body: params.body,
+        timeoutMs: 8000,
+      },
+    );
+    return result;
+  } catch (err) {
+    state.channelsError = String(err);
+    return null;
+  }
+}
+
 export async function startWhatsAppLogin(state: ChannelsState, force: boolean) {
   if (!state.client || !state.connected || state.whatsappBusy) {
     return;

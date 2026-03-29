@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { i18n } from "../../i18n/index.ts";
 import type { GatewayBrowserClient } from "../gateway.ts";
 import type { GatewaySessionRow } from "../types.ts";
 import { executeSlashCommand } from "./slash-command-executor.ts";
@@ -227,6 +228,24 @@ describe("executeSlashCommand /kill", () => {
     expect(request).toHaveBeenNthCalledWith(3, "chat.abort", {
       sessionKey: "agent:main:subagent:mine:subagent:child",
     });
+  });
+});
+
+describe("executeSlashCommand /compact localization", () => {
+  it("returns simplified Chinese copy when the locale is zh-CN", async () => {
+    await i18n.setLocale("zh-CN");
+    const request = vi.fn(async () => ({ ok: true }));
+
+    const result = await executeSlashCommand(
+      { request } as unknown as GatewayBrowserClient,
+      "agent:main:main",
+      "compact",
+      "",
+    );
+
+    expect(result.content).toBe("上下文压缩完成。");
+    expect(result.action).toBe("refresh");
+    await i18n.setLocale("en");
   });
 });
 

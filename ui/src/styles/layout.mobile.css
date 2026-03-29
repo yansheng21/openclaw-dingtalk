@@ -219,6 +219,11 @@
   .shell--nav-collapsed:not(.shell--nav-drawer-open) .sidebar-mode-switch {
     display: none;
   }
+
+  .dingtalk-editor-options,
+  .dingtalk-editor-overview__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* Mobile-specific styles */
@@ -537,6 +542,128 @@
   .log-stream {
     border-radius: var(--radius-md);
     max-height: 380px;
+  }
+
+  .channels-overview__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .channels-selection {
+    padding: 16px;
+  }
+
+  .channels-selection__title {
+    font-size: 24px;
+  }
+
+  .channels-list-page__head,
+  .channels-list-page__actions,
+  .channels-selection__head,
+  .channels-selection__nav,
+  .channels-modal__head,
+  .channels-modal__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .channels-list-filters {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .channels-table__head,
+  .channels-table__row,
+  .channels-form-grid,
+  .channels-dingtalk__info-grid,
+  .channels-dingtalk__detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .channels-table__actions .btn,
+  .channels-list-page__actions .btn,
+  .channels-selection__actions .btn,
+  .channels-modal__actions .btn,
+  .channels-create-picker__footer .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .channels-table__actions,
+  .channels-selection__actions {
+    grid-template-columns: 1fr;
+    min-width: 0;
+  }
+
+  .channels-table__actions > .btn:last-child:nth-child(odd),
+  .channels-selection__actions > .btn:last-child:nth-child(odd) {
+    grid-column: auto;
+  }
+
+  .channels-create-picker__footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .channels-list-filters__meta {
+    justify-content: flex-start;
+  }
+
+  .channels-modal-overlay {
+    padding: 12px;
+  }
+
+  .channels-modal {
+    width: 100%;
+    max-height: 92vh;
+  }
+
+  .channels-selection__stats,
+  .channels-dingtalk__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .channels-dingtalk__header,
+  .channels-dingtalk__detail-head {
+    width: 100%;
+  }
+
+  .channels-dingtalk__account-top,
+  .channels-dingtalk__detail-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .channels-dingtalk__account-actions .btn,
+  .channels-dingtalk__detail-actions .btn {
+    flex: 1 1 140px;
+    justify-content: center;
+  }
+
+  .dingtalk-workbench,
+  .dingtalk-summary__grid,
+  .dingtalk-card__metrics,
+  .dingtalk-detail__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .channel-terminal__bar {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .channel-terminal__badge {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .channel-terminal__row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    padding: 8px 12px 8px 24px;
+  }
+
+  .channel-terminal__row::before {
+    left: 8px;
+    top: 8px;
   }
 
   .log-row {

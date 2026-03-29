@@ -1689,7 +1689,7 @@
       "tags": [
         "automation"
       ],
-      "help": "Delivery target (\"last\", \"none\", or a channel id). Known channels: telegram, whatsapp, discord, irc, googlechat, slack, signal, imessage, line, bluebubbles, feishu, matrix, mattermost, msteams, nextcloud-talk, nostr, synology-chat, tlon, twitch, zalo, zalouser.",
+      "help": "Delivery target (\"last\", \"none\", or a channel id). Known channels: telegram, whatsapp, discord, irc, googlechat, slack, signal, imessage, line, bluebubbles, feishu, matrix, mattermost, msteams, nextcloud-talk, nostr, synology-chat, tlon, twitch, zalo, zalouser, dingtalk-connector, dingtalk-enterprise.",
       "hasChildren": false
     },
     {
@@ -4345,7 +4345,7 @@
       "tags": [
         "automation"
       ],
-      "help": "Delivery target (\"last\", \"none\", or a channel id). Known channels: telegram, whatsapp, discord, irc, googlechat, slack, signal, imessage, line, bluebubbles, feishu, matrix, mattermost, msteams, nextcloud-talk, nostr, synology-chat, tlon, twitch, zalo, zalouser.",
+      "help": "Delivery target (\"last\", \"none\", or a channel id). Known channels: telegram, whatsapp, discord, irc, googlechat, slack, signal, imessage, line, bluebubbles, feishu, matrix, mattermost, msteams, nextcloud-talk, nostr, synology-chat, tlon, twitch, zalo, zalouser, dingtalk-connector, dingtalk-enterprise.",
       "hasChildren": false
     },
     {
@@ -9364,6 +9364,341 @@
     },
     {
       "path": "channels.bluebubbles.webhookPath",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-connector",
+      "kind": "channel",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "channels",
+        "network"
+      ],
+      "label": "DingTalk Channel",
+      "help": "DingTalk (钉钉) messaging channel via Stream mode with AI Card streaming",
+      "hasChildren": true
+    },
+    {
+      "path": "channels.dingtalk-connector.enabled",
+      "kind": "channel",
+      "type": "boolean",
+      "required": false,
+      "defaultValue": true,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-enterprise",
+      "kind": "channel",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "channels",
+        "network"
+      ],
+      "label": "DingTalk Enterprise",
+      "help": "Enterprise DingTalk connector for DingClaw.",
+      "hasChildren": true
+    },
+    {
+      "path": "channels.dingtalk-enterprise.accounts",
+      "kind": "channel",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": true
+    },
+    {
+      "path": "channels.dingtalk-enterprise.accounts.*",
+      "kind": "channel",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": true
+    },
+    {
+      "path": "channels.dingtalk-enterprise.accounts.*.agentId",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-enterprise.accounts.*.appKey",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-enterprise.accounts.*.appSecret",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-enterprise.accounts.*.callbackBaseUrl",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-enterprise.accounts.*.cardCallbackPath",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-enterprise.accounts.*.clientId",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-enterprise.accounts.*.clientSecret",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-enterprise.accounts.*.enabled",
+      "kind": "channel",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-enterprise.accounts.*.messageCallbackPath",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-enterprise.accounts.*.name",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-enterprise.accounts.*.oaCallbackPath",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-enterprise.accounts.*.robotCode",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-enterprise.accounts.*.tenantId",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-enterprise.agentId",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-enterprise.appKey",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-enterprise.appSecret",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-enterprise.callbackBaseUrl",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-enterprise.cardCallbackPath",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "defaultValue": "/webhooks/dingtalk/cards/actions",
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-enterprise.clientId",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-enterprise.clientSecret",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-enterprise.defaultAccount",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-enterprise.enabled",
+      "kind": "channel",
+      "type": "boolean",
+      "required": false,
+      "defaultValue": true,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-enterprise.messageCallbackPath",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "defaultValue": "/webhooks/dingtalk/messages",
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-enterprise.name",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-enterprise.oaCallbackPath",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "defaultValue": "/webhooks/dingtalk/oa/events",
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-enterprise.robotCode",
+      "kind": "channel",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "channels.dingtalk-enterprise.tenantId",
       "kind": "channel",
       "type": "string",
       "required": false,
@@ -47319,8 +47654,8 @@
       "tags": [
         "advanced"
       ],
-      "label": "@openclaw/deepgram-media-understanding",
-      "help": "OpenClaw Deepgram media-understanding plugin (plugin: deepgram)",
+      "label": "@openclaw/deepgram-provider",
+      "help": "OpenClaw Deepgram media-understanding provider (plugin: deepgram)",
       "hasChildren": true
     },
     {
@@ -47333,7 +47668,7 @@
       "tags": [
         "advanced"
       ],
-      "label": "@openclaw/deepgram-media-understanding Config",
+      "label": "@openclaw/deepgram-provider Config",
       "help": "Plugin-defined config payload for deepgram.",
       "hasChildren": false
     },
@@ -47347,7 +47682,7 @@
       "tags": [
         "advanced"
       ],
-      "label": "Enable @openclaw/deepgram-media-understanding",
+      "label": "Enable @openclaw/deepgram-provider",
       "hasChildren": false
     },
     {
@@ -48145,6 +48480,553 @@
       "hasChildren": false
     },
     {
+      "path": "plugins.entries.dingtalk-connector",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "DingTalk Channel",
+      "help": "DingTalk (钉钉) messaging channel via Stream mode with AI Card streaming (plugin: dingtalk-connector)",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.dingtalk-connector.config",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "DingTalk Channel Config",
+      "help": "Plugin-defined config payload for dingtalk-connector.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.dingtalk-connector.config.enabled",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "defaultValue": true,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-connector.enabled",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Enable DingTalk Channel",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-connector.hooks",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Plugin Hook Policy",
+      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.dingtalk-connector.hooks.allowPromptInjection",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Allow Prompt Injection Hooks",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-connector.subagent",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Plugin Subagent Policy",
+      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.dingtalk-connector.subagent.allowedModels",
+      "kind": "plugin",
+      "type": "array",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Plugin Subagent Allowed Models",
+      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.dingtalk-connector.subagent.allowedModels.*",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-connector.subagent.allowModelOverride",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Allow Plugin Subagent Model Override",
+      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "DingTalk Enterprise",
+      "help": "Enterprise DingTalk connector for DingClaw. (plugin: dingtalk-enterprise)",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "DingTalk Enterprise Config",
+      "help": "Plugin-defined config payload for dingtalk-enterprise.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.accounts",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.accounts.*",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.accounts.*.agentId",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.accounts.*.appKey",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.accounts.*.appSecret",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.accounts.*.callbackBaseUrl",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.accounts.*.cardCallbackPath",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.accounts.*.clientId",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.accounts.*.clientSecret",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.accounts.*.enabled",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.accounts.*.messageCallbackPath",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.accounts.*.name",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.accounts.*.oaCallbackPath",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.accounts.*.robotCode",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.accounts.*.tenantId",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.agentId",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.appKey",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.appSecret",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.callbackBaseUrl",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.cardCallbackPath",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "defaultValue": "/webhooks/dingtalk/cards/actions",
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.clientId",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.clientSecret",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.defaultAccount",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.enabled",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "defaultValue": true,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.messageCallbackPath",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "defaultValue": "/webhooks/dingtalk/messages",
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.name",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.oaCallbackPath",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "defaultValue": "/webhooks/dingtalk/oa/events",
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.robotCode",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.config.tenantId",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.enabled",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Enable DingTalk Enterprise",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.hooks",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Plugin Hook Policy",
+      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.hooks.allowPromptInjection",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Allow Prompt Injection Hooks",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.subagent",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Plugin Subagent Policy",
+      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.subagent.allowedModels",
+      "kind": "plugin",
+      "type": "array",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Plugin Subagent Allowed Models",
+      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.subagent.allowedModels.*",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.dingtalk-enterprise.subagent.allowModelOverride",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Allow Plugin Subagent Model Override",
+      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
+      "hasChildren": false
+    },
+    {
       "path": "plugins.entries.discord",
       "kind": "plugin",
       "type": "object",
@@ -48266,6 +49148,170 @@
       "hasChildren": false
     },
     {
+      "path": "plugins.entries.duckduckgo",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "@openclaw/duckduckgo-plugin",
+      "help": "OpenClaw DuckDuckGo plugin (plugin: duckduckgo)",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.duckduckgo.config",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "@openclaw/duckduckgo-plugin Config",
+      "help": "Plugin-defined config payload for duckduckgo.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.duckduckgo.config.webSearch",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.duckduckgo.config.webSearch.region",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "DuckDuckGo Region",
+      "help": "Optional DuckDuckGo region code such as us-en, uk-en, or de-de.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.duckduckgo.config.webSearch.safeSearch",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "enumValues": [
+        "strict",
+        "moderate",
+        "off"
+      ],
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "DuckDuckGo SafeSearch",
+      "help": "SafeSearch level for DuckDuckGo results.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.duckduckgo.enabled",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Enable @openclaw/duckduckgo-plugin",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.duckduckgo.hooks",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Plugin Hook Policy",
+      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.duckduckgo.hooks.allowPromptInjection",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Allow Prompt Injection Hooks",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.duckduckgo.subagent",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Plugin Subagent Policy",
+      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.duckduckgo.subagent.allowedModels",
+      "kind": "plugin",
+      "type": "array",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Plugin Subagent Allowed Models",
+      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.duckduckgo.subagent.allowedModels.*",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.duckduckgo.subagent.allowModelOverride",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Allow Plugin Subagent Model Override",
+      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
+      "hasChildren": false
+    },
+    {
       "path": "plugins.entries.elevenlabs",
       "kind": "plugin",
       "type": "object",
@@ -48374,6 +49420,155 @@
     },
     {
       "path": "plugins.entries.elevenlabs.subagent.allowModelOverride",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Allow Plugin Subagent Model Override",
+      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.exa",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "@openclaw/exa-plugin",
+      "help": "OpenClaw Exa plugin (plugin: exa)",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.exa.config",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "@openclaw/exa-plugin Config",
+      "help": "Plugin-defined config payload for exa.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.exa.config.webSearch",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.exa.config.webSearch.apiKey",
+      "kind": "plugin",
+      "type": [
+        "object",
+        "string"
+      ],
+      "required": false,
+      "deprecated": false,
+      "sensitive": true,
+      "tags": [
+        "auth",
+        "security"
+      ],
+      "label": "Exa API Key",
+      "help": "Exa Search API key (fallback: EXA_API_KEY env var).",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.exa.enabled",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Enable @openclaw/exa-plugin",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.exa.hooks",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Plugin Hook Policy",
+      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.exa.hooks.allowPromptInjection",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Allow Prompt Injection Hooks",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.exa.subagent",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Plugin Subagent Policy",
+      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.exa.subagent.allowedModels",
+      "kind": "plugin",
+      "type": "array",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Plugin Subagent Allowed Models",
+      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.exa.subagent.allowedModels.*",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.exa.subagent.allowModelOverride",
       "kind": "plugin",
       "type": "boolean",
       "required": false,
@@ -48616,166 +49811,6 @@
     },
     {
       "path": "plugins.entries.feishu.subagent.allowModelOverride",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Plugin Subagent Model Override",
-      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.duckduckgo",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "@openclaw/duckduckgo-plugin",
-      "help": "OpenClaw DuckDuckGo plugin (plugin: duckduckgo)",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.duckduckgo.config",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "@openclaw/duckduckgo-plugin Config",
-      "help": "Plugin-defined config payload for duckduckgo.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.duckduckgo.config.webSearch",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.duckduckgo.config.webSearch.region",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "label": "DuckDuckGo Region",
-      "help": "Optional DuckDuckGo region code such as us-en, uk-en, or de-de.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.duckduckgo.config.webSearch.safeSearch",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "enumValues": [
-        "strict",
-        "moderate",
-        "off"
-      ],
-      "label": "DuckDuckGo SafeSearch",
-      "help": "SafeSearch level for DuckDuckGo results.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.duckduckgo.enabled",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Enable @openclaw/duckduckgo-plugin",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.duckduckgo.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.duckduckgo.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.duckduckgo.subagent",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Subagent Policy",
-      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.duckduckgo.subagent.allowedModels",
-      "kind": "plugin",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Plugin Subagent Allowed Models",
-      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.duckduckgo.subagent.allowedModels.*",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.duckduckgo.subagent.allowModelOverride",
       "kind": "plugin",
       "type": "boolean",
       "required": false,
@@ -49366,8 +50401,8 @@
       "tags": [
         "advanced"
       ],
-      "label": "@openclaw/groq-media-understanding",
-      "help": "OpenClaw Groq media-understanding plugin (plugin: groq)",
+      "label": "@openclaw/groq-provider",
+      "help": "OpenClaw Groq media-understanding provider (plugin: groq)",
       "hasChildren": true
     },
     {
@@ -49380,7 +50415,7 @@
       "tags": [
         "advanced"
       ],
-      "label": "@openclaw/groq-media-understanding Config",
+      "label": "@openclaw/groq-provider Config",
       "help": "Plugin-defined config payload for groq.",
       "hasChildren": false
     },
@@ -49394,7 +50429,7 @@
       "tags": [
         "advanced"
       ],
-      "label": "Enable @openclaw/groq-media-understanding",
+      "label": "Enable @openclaw/groq-provider",
       "hasChildren": false
     },
     {
@@ -49707,6 +50742,127 @@
     },
     {
       "path": "plugins.entries.imessage.subagent.allowModelOverride",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Allow Plugin Subagent Model Override",
+      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.internal-api-tools",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Internal API Tools",
+      "help": "Enterprise internal API toolset for DingClaw. (plugin: internal-api-tools)",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.internal-api-tools.config",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Internal API Tools Config",
+      "help": "Plugin-defined config payload for internal-api-tools.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.internal-api-tools.enabled",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Enable Internal API Tools",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.internal-api-tools.hooks",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Plugin Hook Policy",
+      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.internal-api-tools.hooks.allowPromptInjection",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Allow Prompt Injection Hooks",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.internal-api-tools.subagent",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Plugin Subagent Policy",
+      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.internal-api-tools.subagent.allowedModels",
+      "kind": "plugin",
+      "type": "array",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Plugin Subagent Allowed Models",
+      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.internal-api-tools.subagent.allowedModels.*",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.internal-api-tools.subagent.allowModelOverride",
       "kind": "plugin",
       "type": "boolean",
       "required": false,
@@ -52261,6 +53417,127 @@
     },
     {
       "path": "plugins.entries.nvidia.subagent.allowModelOverride",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Allow Plugin Subagent Model Override",
+      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.oa-tools",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "OA Tools",
+      "help": "OA and approval-related tools for DingClaw. (plugin: oa-tools)",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.oa-tools.config",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "OA Tools Config",
+      "help": "Plugin-defined config payload for oa-tools.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.oa-tools.enabled",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Enable OA Tools",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.oa-tools.hooks",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Plugin Hook Policy",
+      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.oa-tools.hooks.allowPromptInjection",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Allow Prompt Injection Hooks",
+      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` and ignore prompt-mutating fields from legacy `before_agent_start`, while preserving legacy `modelOverride` and `providerOverride` behavior.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.oa-tools.subagent",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Plugin Subagent Policy",
+      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.oa-tools.subagent.allowedModels",
+      "kind": "plugin",
+      "type": "array",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Plugin Subagent Allowed Models",
+      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.oa-tools.subagent.allowedModels.*",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.oa-tools.subagent.allowModelOverride",
       "kind": "plugin",
       "type": "boolean",
       "required": false,

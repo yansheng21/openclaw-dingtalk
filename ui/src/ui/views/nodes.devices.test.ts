@@ -1,6 +1,7 @@
 /* @vitest-environment jsdom */
 import { render } from "lit";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { i18n } from "../../i18n/index.ts";
 import { renderNodes, type NodesProps } from "./nodes.ts";
 
 function baseProps(overrides: Partial<NodesProps> = {}): NodesProps {
@@ -47,6 +48,14 @@ function baseProps(overrides: Partial<NodesProps> = {}): NodesProps {
 }
 
 describe("nodes devices pending rendering", () => {
+  beforeEach(async () => {
+    await i18n.setLocale("en");
+  });
+
+  afterEach(async () => {
+    await i18n.setLocale("en");
+  });
+
   it("shows pending role and scopes from effective pending auth", () => {
     const container = document.createElement("div");
     render(
@@ -100,5 +109,43 @@ describe("nodes devices pending rendering", () => {
     const text = container.textContent ?? "";
     expect(text).toContain("role: node, operator");
     expect(text).toContain("scopes: operator.read");
+  });
+
+  it("renders localized node and approval labels in zh-CN", async () => {
+    await i18n.setLocale("zh-CN");
+
+    const container = document.createElement("div");
+    render(
+      renderNodes(
+        baseProps({
+          devicesList: {
+            pending: [
+              {
+                requestId: "req-zh",
+                deviceId: "device-zh",
+                role: "operator",
+                scopes: ["operator.read"],
+                ts: Date.now(),
+              },
+            ],
+            paired: [],
+          },
+          execApprovalsForm: {
+            defaults: {
+              security: "deny",
+              ask: "on-miss",
+              askFallback: "deny",
+            },
+          },
+        }),
+      ),
+      container,
+    );
+
+    const text = container.textContent ?? "";
+    expect(text).toContain("节点");
+    expect(text).toContain("执行审批");
+    expect(text).toContain("角色");
+    expect(text).toContain("operator");
   });
 });

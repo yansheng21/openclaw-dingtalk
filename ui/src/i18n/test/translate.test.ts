@@ -92,6 +92,17 @@ describe("i18n", () => {
     expect(fresh.t("common.health")).toBe("健康状况");
   });
 
+  it("defaults to simplified Chinese on startup when no locale is saved", async () => {
+    vi.resetModules();
+    vi.stubGlobal("localStorage", createStorageMock());
+    vi.stubGlobal("navigator", { language: "en-US" } as Navigator);
+
+    const fresh = await import("../lib/translate.ts");
+
+    expect(fresh.i18n.getLocale()).toBe("zh-CN");
+    expect(fresh.t("common.health")).toBe("健康状况");
+  });
+
   it("skips node localStorage accessors that warn without a storage file", async () => {
     vi.resetModules();
     vi.unstubAllGlobals();
@@ -100,7 +111,7 @@ describe("i18n", () => {
 
     const fresh = await import("../lib/translate.ts");
 
-    expect(fresh.i18n.getLocale()).toBe("en");
+    expect(fresh.i18n.getLocale()).toBe("zh-CN");
     expect(warningSpy).not.toHaveBeenCalledWith(
       "`--localstorage-file` was provided without a valid path",
       expect.anything(),
@@ -112,5 +123,13 @@ describe("i18n", () => {
     expect((pt_BR.common as { version?: string }).version).toBeTruthy();
     expect((zh_CN.common as { version?: string }).version).toBeTruthy();
     expect((zh_TW.common as { version?: string }).version).toBeTruthy();
+  });
+
+  it("keeps enterprise dashboard locale sections available in simplified Chinese", () => {
+    expect(((zh_CN.channels as { page?: { healthTitle?: string } }).page?.healthTitle)).toBe(
+      "频道健康",
+    );
+    expect(((zh_CN.instances as { title?: string }).title)).toBe("已连接实例");
+    expect(((zh_CN.usage as { loading?: { title?: string } }).loading?.title)).toBe("使用概览");
   });
 });

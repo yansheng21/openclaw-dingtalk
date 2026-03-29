@@ -3,7 +3,7 @@ import {
   buildAgentMainSessionKey,
   parseAgentSessionKey,
 } from "../../../src/routing/session-key.js";
-import { t } from "../i18n/index.ts";
+import { i18n, t } from "../i18n/index.ts";
 import { getSafeLocalStorage } from "../local-storage.ts";
 import { refreshChatAvatar } from "./app-chat.ts";
 import { renderUsageTab } from "./app-render-usage-tab.ts";
@@ -22,6 +22,7 @@ import { loadAgentIdentities, loadAgentIdentity } from "./controllers/agent-iden
 import { loadAgentSkills } from "./controllers/agent-skills.ts";
 import { loadAgents, loadToolsCatalog, saveAgentsConfig } from "./controllers/agents.ts";
 import { loadChannels } from "./controllers/channels.ts";
+import { testDingTalkEnterprise } from "./controllers/channels.ts";
 import { loadChatHistory } from "./controllers/chat.ts";
 import {
   applyConfig,
@@ -67,6 +68,13 @@ import {
   saveExecApprovals,
   updateExecApprovalsFormValue,
 } from "./controllers/exec-approvals.ts";
+import {
+  clearKnowledgeSyncedData,
+  loadKnowledgeSyncedData,
+  saveKnowledgeSourceOperator,
+  syncDingTalkKnowledgeBase,
+  updateKnowledgeOperatorDraft,
+} from "./controllers/knowledge.ts";
 import { loadLogs } from "./controllers/logs.ts";
 import { loadNodes } from "./controllers/nodes.ts";
 import { loadPresence } from "./controllers/presence.ts";
@@ -81,7 +89,7 @@ import {
 import "./components/dashboard-header.ts";
 import { buildExternalLinkRel, EXTERNAL_LINK_TARGET } from "./external-link.ts";
 import { icons } from "./icons.ts";
-import { normalizeBasePath, TAB_GROUPS, subtitleForTab, titleForTab } from "./navigation.ts";
+import { normalizeBasePath, TAB_GROUPS } from "./navigation.ts";
 import { agentLogoUrl } from "./views/agents-utils.ts";
 import {
   resolveAgentConfig,
@@ -122,6 +130,7 @@ function createLazy<T>(loader: () => Promise<T>): () => T | null {
 }
 
 const lazyAgents = createLazy(() => import("./views/agents.ts"));
+const lazyKnowledge = createLazy(() => import("./views/knowledge.ts"));
 const lazyChannels = createLazy(() => import("./views/channels.ts"));
 const lazyCron = createLazy(() => import("./views/cron.ts"));
 const lazyDebug = createLazy(() => import("./views/debug.ts"));
@@ -284,6 +293,50 @@ function resolveAssistantAvatarUrl(state: AppViewState): string | undefined {
   return identity?.avatarUrl;
 }
 
+function focusChannelLogsPanel() {
+  if (typeof document === "undefined") {
+    return;
+  }
+  const panel = document.getElementById("channel-logs-panel");
+  if (!(panel instanceof HTMLElement)) {
+    return;
+  }
+  const prefersReducedMotion =
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  panel.scrollIntoView({
+    block: "start",
+    behavior: prefersReducedMotion ? "auto" : "smooth",
+  });
+}
+
+function queueChannelLogsFocus() {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.requestAnimationFrame(() => focusChannelLogsPanel());
+}
+
+async function runChannelActionWithLogs(
+  state: AppViewState,
+  channelId: string,
+  action: () => Promise<void>,
+) {
+  state.channelsSelectedId = channelId;
+  state.logsAtBottom = true;
+  queueChannelLogsFocus();
+  void loadLogs(state, { reset: true, quiet: true });
+  try {
+    await action();
+  } finally {
+    state.logsAtBottom = true;
+    queueChannelLogsFocus();
+    void loadChannels(state, true);
+    await loadLogs(state, { reset: true });
+  }
+}
+
 export function renderApp(state: AppViewState) {
   const updatableState = state as AppViewState & { requestUpdate?: () => void };
   const requestHostUpdate =
@@ -321,11 +374,88 @@ export function renderApp(state: AppViewState) {
     state.agentsList?.defaultId ??
     state.agentsList?.agents?.[0]?.id ??
     null;
+  if (
+    state.tab === "knowledge" &&
+    resolvedAgentId &&
+    state.knowledgeDataAgentId !== resolvedAgentId &&
+    !state.knowledgeDataLoading
+  ) {
+    void loadKnowledgeSyncedData(state, { agentId: resolvedAgentId });
+  }
   const getCurrentConfigValue = () =>
     state.configForm ?? (state.configSnapshot?.config as Record<string, unknown> | null);
   const findAgentIndex = (agentId: string) =>
     findAgentConfigEntryIndex(getCurrentConfigValue(), agentId);
   const ensureAgentIndex = (agentId: string) => ensureAgentConfigEntry(state, agentId);
+  const normalizeBindingLookup = (value: unknown) =>
+    typeof value === "string" ? value.trim().toLowerCase() : "";
+  const getCurrentBindings = () => {
+    const bindings = (getCurrentConfigValue() as { bindings?: unknown[] } | null)?.bindings;
+    return Array.isArray(bindings) ? bindings : [];
+  };
+  const findExactBindingIndex = (
+    channel: string,
+    accountId: string,
+    excludeIndex?: number | null,
+  ) => {
+    const bindings = getCurrentBindings();
+    const bindingChannel = normalizeBindingLookup(channel);
+    const bindingAccountId = normalizeBindingLookup(accountId);
+    return bindings.findIndex((entry, index) => {
+      if (excludeIndex != null && index === excludeIndex) {
+        return false;
+      }
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        return false;
+      }
+      const record = entry as { type?: unknown; match?: unknown };
+      const type = typeof record.type === "string" ? record.type.trim() : "";
+      if (type && type !== "route") {
+        return false;
+      }
+      if (!record.match || typeof record.match !== "object" || Array.isArray(record.match)) {
+        return false;
+      }
+      const match = record.match as Record<string, unknown>;
+      return (
+        normalizeBindingLookup(match.channel) === bindingChannel &&
+        normalizeBindingLookup(match.accountId) === bindingAccountId &&
+        Object.keys(match).every((key) => key === "channel" || key === "accountId")
+      );
+    });
+  };
+  const upsertExactBinding = (params: {
+    agentId: string;
+    channel: string;
+    accountId: string;
+    comment?: string;
+    bindingIndex?: number | null;
+  }) => {
+    const channel = params.channel.trim();
+    const accountId = params.accountId.trim();
+    if (!channel || !accountId) {
+      return;
+    }
+    const existingIndex = findExactBindingIndex(channel, accountId, params.bindingIndex);
+    const nextBindingIndex =
+      params.bindingIndex != null && params.bindingIndex >= 0
+        ? params.bindingIndex
+        : existingIndex >= 0
+          ? existingIndex
+          : getCurrentBindings().length;
+    updateConfigFormValue(state, ["bindings", nextBindingIndex, "agentId"], params.agentId);
+    updateConfigFormValue(state, ["bindings", nextBindingIndex, "match", "channel"], channel);
+    updateConfigFormValue(state, ["bindings", nextBindingIndex, "match", "accountId"], accountId);
+    if (params.comment?.trim()) {
+      updateConfigFormValue(
+        state,
+        ["bindings", nextBindingIndex, "comment"],
+        params.comment.trim(),
+      );
+    } else {
+      removeConfigFormValue(state, ["bindings", nextBindingIndex, "comment"]);
+    }
+  };
   const cronAgentSuggestions = sortLocaleStrings(
     new Set(
       [
@@ -596,22 +726,24 @@ export function renderApp(state: AppViewState) {
             : nothing
         }
         ${
-          state.tab === "config"
-            ? nothing
-            : html`<section class="content-header">
-              <div>
-                ${
-                  isChat
-                    ? renderChatSessionSelect(state)
-                    : html`<div class="page-title">${titleForTab(state.tab)}</div>`
-                }
-                ${isChat ? nothing : html`<div class="page-sub">${subtitleForTab(state.tab)}</div>`}
-              </div>
-              <div class="page-meta">
-                ${state.lastError ? html`<div class="pill danger">${state.lastError}</div>` : nothing}
-                ${isChat ? renderChatControls(state) : nothing}
-              </div>
-            </section>`
+          isChat
+            ? html`<section class="content-header">
+                <div>
+                  ${renderChatSessionSelect(state)}
+                </div>
+                <div class="page-meta">
+                  ${state.lastError ? html`<div class="pill danger">${state.lastError}</div>` : nothing}
+                  ${renderChatControls(state)}
+                </div>
+              </section>`
+            : state.lastError
+              ? html`<section class="content-header">
+                  <div></div>
+                  <div class="page-meta">
+                    <div class="pill danger">${state.lastError}</div>
+                  </div>
+                </section>`
+              : nothing
         }
 
         ${
@@ -671,6 +803,10 @@ export function renderApp(state: AppViewState) {
                 m.renderChannels({
                   connected: state.connected,
                   loading: state.channelsLoading,
+                  dingtalkTesting: state.dingtalkTestBusy,
+                  dingtalkPreviewLoading: state.dingtalkPreviewLoading,
+                  dingtalkPreviewResult: state.dingtalkPreviewResult,
+                  dingtalkPreviewPreset: state.dingtalkPreviewPreset,
                   snapshot: state.channelsSnapshot,
                   lastError: state.channelsError,
                   lastSuccessAt: state.channelsLastSuccess,
@@ -686,11 +822,103 @@ export function renderApp(state: AppViewState) {
                   configFormDirty: state.configFormDirty,
                   nostrProfileFormState: state.nostrProfileFormState,
                   nostrProfileAccountId: state.nostrProfileAccountId,
+                  pageView: state.channelsPageView,
+                  selectedChannelId: state.channelsSelectedId,
+                  selectedChannelAccountId: state.channelsSelectedAccountId,
+                  dingtalkViewMode: state.dingtalkViewMode,
+                  listSearchQuery: state.channelsListSearchQuery,
+                  listStatusFilter: state.channelsListStatusFilter,
+                  channelCreatePickerOpen: state.channelCreatePickerOpen,
+                  channelConfigEditorChannelId: state.channelConfigEditorChannelId,
+                  dingtalkAccountEditorState: state.dingtalkAccountEditor,
+                  genericChannelAccountEditorState: state.genericChannelAccountEditor,
+                  logsLoading: state.logsLoading,
+                  logsError: state.logsError,
+                  logsFile: state.logsFile,
+                  logsEntries: state.logsEntries,
+                  logsTruncated: state.logsTruncated,
+                  logsLastFetchAt: state.logsLastFetchAt,
+                  logsAutoFollow: state.logsAutoFollow,
+                  isSensitivePathRevealed: (path) => state.isChannelSensitivePathRevealed(path),
+                  onToggleSensitivePath: (path) => state.toggleChannelSensitivePathReveal(path),
                   onRefresh: (probe) => loadChannels(state, probe),
-                  onWhatsAppStart: (force) => state.handleWhatsAppStart(force),
-                  onWhatsAppWait: () => state.handleWhatsAppWait(),
-                  onWhatsAppLogout: () => state.handleWhatsAppLogout(),
+                  onDingTalkTest: (accountId) =>
+                    void runChannelActionWithLogs(state, "dingtalk-enterprise", () =>
+                      testDingTalkEnterprise(state, accountId),
+                    ),
+                  onDingTalkPreview: (accountId, preset) =>
+                    void state.previewDingTalkPolicy(accountId, preset),
+                  onDingTalkPreviewPresetChange: (preset) => state.setDingTalkPreviewPreset(preset),
+                  onOpenChannelDetail: (channelId, accountId) => {
+                    state.channelsSelectedId = channelId;
+                    state.channelsPageView = "detail";
+                    state.channelsSelectedAccountId = accountId ?? null;
+                  },
+                  onBackToChannelList: () => {
+                    state.channelsPageView = "list";
+                    state.channelsSelectedAccountId = null;
+                  },
+                  onSelectChannel: (channelId) => {
+                    state.channelsSelectedId = channelId;
+                    state.channelsSelectedAccountId = null;
+                  },
+                  onSelectChannelAccount: (accountId) =>
+                    (state.channelsSelectedAccountId = accountId),
+                  onDingTalkViewModeChange: (mode) => (state.dingtalkViewMode = mode),
+                  onListSearchQueryChange: (query) => (state.channelsListSearchQuery = query),
+                  onListStatusFilterChange: (filter) => (state.channelsListStatusFilter = filter),
+                  onOpenChannelCreatePicker: () => state.openChannelCreatePicker(),
+                  onCloseChannelCreatePicker: () => state.closeChannelCreatePicker(),
+                  onStartChannelCreate: (channelId) => state.startChannelCreate(channelId),
+                  onOpenChannelConfigEditor: (channelId) =>
+                    state.openChannelConfigEditor(channelId),
+                  onCloseChannelConfigEditor: () => state.closeChannelConfigEditor(),
+                  onOpenModelsConfig: () => {
+                    state.setTab("config" as import("./navigation.ts").Tab);
+                    state.configActiveSection = "models";
+                    state.configActiveSubsection = null;
+                  },
+                  onOpenDingTalkAccountEditor: (mode, accountId) =>
+                    state.openDingTalkAccountEditor(mode, accountId),
+                  onCloseDingTalkAccountEditor: () => state.closeDingTalkAccountEditor(),
+                  onOpenGenericChannelAccountEditor: (channelId, mode, accountId) =>
+                    state.openGenericChannelAccountEditor(channelId, mode, accountId),
+                  onCloseGenericChannelAccountEditor: () =>
+                    state.closeGenericChannelAccountEditor(),
+                  onGenericChannelAccountEditorAccountIdChange: (value) =>
+                    state.updateGenericChannelAccountEditorAccountId(value),
+                  onGenericChannelAccountEditorDefaultChange: (value) =>
+                    state.updateGenericChannelAccountEditorDefault(value),
+                  onGenericChannelAccountEditorPatch: (path, value) =>
+                    state.patchGenericChannelAccountEditor(path, value),
+                  onDingTalkAccountEditorFieldChange: (field, value) =>
+                    state.updateDingTalkAccountEditorField(field, value),
+                  onToggleDingTalkAccountEditorSensitiveField: (field) =>
+                    state.toggleDingTalkAccountEditorSensitiveField(field),
+                  onSaveDingTalkAccountEditor: () => state.saveDingTalkAccountEditor(),
+                  onDeleteDingTalkAccount: (accountId) =>
+                    void state.deleteDingTalkAccount(accountId),
+                  onSaveGenericChannelAccountEditor: () => state.saveGenericChannelAccountEditor(),
+                  onDeleteGenericChannelAccount: (channelId, accountId) =>
+                    void state.deleteGenericChannelAccount(channelId, accountId),
+                  onLogsRefresh: () => void loadLogs(state, { reset: true }),
+                  onLogsAutoFollowChange: (next) => (state.logsAutoFollow = next),
+                  onLogsScroll: (event) => state.handleLogsScroll(event),
+                  onFocusLogsPanel: () => focusChannelLogsPanel(),
+                  onWhatsAppStart: (force) =>
+                    void runChannelActionWithLogs(state, "whatsapp", () =>
+                      state.handleWhatsAppStart(force),
+                    ),
+                  onWhatsAppWait: () =>
+                    void runChannelActionWithLogs(state, "whatsapp", () =>
+                      state.handleWhatsAppWait(),
+                    ),
+                  onWhatsAppLogout: () =>
+                    void runChannelActionWithLogs(state, "whatsapp", () =>
+                      state.handleWhatsAppLogout(),
+                    ),
                   onConfigPatch: (path, value) => updateConfigFormValue(state, path, value),
+                  onConfigRemove: (path) => removeConfigFormValue(state, path),
                   onConfigSave: () => state.handleChannelConfigSave(),
                   onConfigReload: () => state.handleChannelConfigReload(),
                   onNostrProfileEdit: (accountId, profile) =>
@@ -913,6 +1141,103 @@ export function renderApp(state: AppViewState) {
         }
 
         ${
+          state.tab === "knowledge"
+            ? lazyRender(lazyKnowledge, (m) =>
+                m.renderKnowledge({
+                  loading: state.agentsLoading,
+                  configLoading: state.configLoading,
+                  agentsList: state.agentsList,
+                  selectedAgentId: resolvedAgentId,
+                  agentIdentityById: state.agentIdentityById,
+                  configForm: configValue,
+                  operatorDrafts: state.knowledgeOperatorDrafts,
+                  operatorSavingSourceKey: state.knowledgeOperatorSavingSourceKey,
+                  operatorSaveError: state.knowledgeOperatorSaveError,
+                  dataLoading: state.knowledgeDataLoading,
+                  dataError: state.knowledgeDataError,
+                  dataResult: state.knowledgeDataResult,
+                  clearBusy: state.knowledgeClearBusy,
+                  clearAgentId: state.knowledgeClearAgentId,
+                  clearError: state.knowledgeClearError,
+                  syncBusy: state.knowledgeSyncBusy,
+                  syncAccountId: state.knowledgeSyncAccountId,
+                  syncError: state.knowledgeSyncError,
+                  syncResult: state.knowledgeSyncResult,
+                  onSelectAgent: (agentId) => {
+                    state.agentsSelectedId = agentId;
+                    state.knowledgeOperatorSaveError = null;
+                    state.knowledgeDataError = null;
+                    state.knowledgeClearError = null;
+                    state.knowledgeSyncError = null;
+                    if (!state.agentIdentityById[agentId]) {
+                      void loadAgentIdentity(state, agentId);
+                    }
+                    void loadKnowledgeSyncedData(state, { agentId });
+                  },
+                  onReload: async () => {
+                    state.knowledgeOperatorDrafts = {};
+                    state.knowledgeOperatorSaveError = null;
+                    state.knowledgeDataError = null;
+                    state.knowledgeClearError = null;
+                    await loadAgents(state);
+                    await loadConfig(state);
+                    const refreshedAgentId =
+                      state.agentsSelectedId ??
+                      state.agentsList?.defaultId ??
+                      state.agentsList?.agents?.[0]?.id ??
+                      null;
+                    if (refreshedAgentId) {
+                      void loadAgentIdentity(state, refreshedAgentId);
+                      void loadKnowledgeSyncedData(state, { agentId: refreshedAgentId });
+                    }
+                  },
+                  onOpenSources: () => {
+                    state.channelsPageView = "list";
+                    state.channelsSelectedId = null;
+                    state.channelsSelectedAccountId = null;
+                    state.setTab("channels");
+                  },
+                  onOpenAgentFiles: (agentId) => {
+                    state.agentsSelectedId = agentId;
+                    state.agentsPanel = "files";
+                    state.setTab("agents");
+                    void loadAgentIdentity(state, agentId);
+                    void loadAgentFiles(state, agentId);
+                  },
+                  onOpenSource: (channelId, accountId) => {
+                    state.channelsPageView = "detail";
+                    state.channelsSelectedId = channelId;
+                    state.channelsSelectedAccountId = accountId;
+                    state.setTab("channels");
+                  },
+                  onClearData: async (agentId) => {
+                    const cleared = await clearKnowledgeSyncedData(state, { agentId });
+                    if (cleared) {
+                      state.knowledgeSyncResult = null;
+                      void loadKnowledgeSyncedData(state, { agentId });
+                    }
+                  },
+                  onSyncSource: async (params) => {
+                    const result = await syncDingTalkKnowledgeBase(state, params);
+                    if (result?.agentId) {
+                      void loadKnowledgeSyncedData(state, { agentId: result.agentId });
+                    }
+                  },
+                  onOperatorDraftChange: (sourceKey, value) => {
+                    updateKnowledgeOperatorDraft(state, sourceKey, value);
+                  },
+                  onSaveOperator: async (params) => {
+                    const saved = await saveKnowledgeSourceOperator(state, params);
+                    if (saved && resolvedAgentId) {
+                      void loadKnowledgeSyncedData(state, { agentId: resolvedAgentId });
+                    }
+                  },
+                }),
+              )
+            : nothing
+        }
+
+        ${
           state.tab === "agents"
             ? lazyRender(lazyAgents, (m) =>
                 m.renderAgents({
@@ -964,6 +1289,7 @@ export function renderApp(state: AppViewState) {
                     error: state.toolsCatalogError,
                     result: state.toolsCatalogResult,
                   },
+                  onRequestUpdate: requestHostUpdate,
                   onRefresh: async () => {
                     await loadAgents(state);
                     const agentIds = state.agentsList?.agents?.map((entry) => entry.id) ?? [];
@@ -983,6 +1309,9 @@ export function renderApp(state: AppViewState) {
                     }
                     if (state.agentsPanel === "tools" && refreshedAgentId) {
                       void loadToolsCatalog(state, refreshedAgentId);
+                    }
+                    if (state.agentsPanel === "bindings") {
+                      void loadChannels(state, false);
                     }
                     if (state.agentsPanel === "channels") {
                       void loadChannels(state, false);
@@ -1004,6 +1333,7 @@ export function renderApp(state: AppViewState) {
                     state.agentFileDrafts = {};
                     state.agentSkillsReport = null;
                     state.agentSkillsError = null;
+                    state.agentSkillsLoadingAgentId = null;
                     state.agentSkillsAgentId = null;
                     state.toolsCatalogResult = null;
                     state.toolsCatalogError = null;
@@ -1043,6 +1373,9 @@ export function renderApp(state: AppViewState) {
                       ) {
                         void loadToolsCatalog(state, resolvedAgentId);
                       }
+                    }
+                    if (panel === "bindings") {
+                      void loadChannels(state, false);
                     }
                     if (panel === "channels") {
                       void loadChannels(state, false);
@@ -1261,6 +1594,103 @@ export function renderApp(state: AppViewState) {
                       return;
                     }
                     updateConfigFormValue(state, ["agents", "defaultId"], agentId);
+                    if (state.agentsList) {
+                      state.agentsList = {
+                        ...state.agentsList,
+                        defaultId: agentId,
+                      };
+                    }
+                  },
+                  onSaveBinding: (agentId, bindingIndex, draft) => {
+                    if (!configValue) {
+                      return;
+                    }
+                    upsertExactBinding({
+                      agentId,
+                      channel: draft.channel,
+                      accountId: draft.accountId,
+                      comment: draft.comment,
+                      bindingIndex,
+                    });
+                  },
+                  onRemoveBinding: (bindingIndex) => {
+                    if (!configValue || bindingIndex < 0) {
+                      return;
+                    }
+                    removeConfigFormValue(state, ["bindings", bindingIndex]);
+                  },
+                  onCreateAgent: ({ id, name, workspace, makeDefault, binding }) => {
+                    if (!configValue) {
+                      return;
+                    }
+                    const agentId = id.trim();
+                    const displayName = name?.trim() || undefined;
+                    const workspaceDir = workspace.trim();
+                    if (!agentId || !workspaceDir) {
+                      return;
+                    }
+                    const existingIndex = findAgentIndex(agentId);
+                    const index = existingIndex >= 0 ? existingIndex : ensureAgentIndex(agentId);
+                    if (index < 0) {
+                      return;
+                    }
+                    if (displayName) {
+                      updateConfigFormValue(state, ["agents", "list", index, "name"], displayName);
+                    } else {
+                      removeConfigFormValue(state, ["agents", "list", index, "name"]);
+                    }
+                    updateConfigFormValue(
+                      state,
+                      ["agents", "list", index, "workspace"],
+                      workspaceDir,
+                    );
+                    if (makeDefault) {
+                      updateConfigFormValue(state, ["agents", "defaultId"], agentId);
+                    }
+                    if (binding?.channel.trim() && binding.accountId.trim()) {
+                      upsertExactBinding({
+                        agentId,
+                        channel: binding.channel,
+                        accountId: binding.accountId,
+                      });
+                    }
+
+                    const existingAgents = state.agentsList?.agents ?? [];
+                    const existingAgent = existingAgents.find((entry) => entry.id === agentId);
+                    const nextAgent = existingAgent
+                      ? {
+                          ...existingAgent,
+                          ...(displayName ? { name: displayName } : {}),
+                        }
+                      : {
+                          id: agentId,
+                          ...(displayName ? { name: displayName } : {}),
+                        };
+                    const nextAgents = existingAgent
+                      ? existingAgents.map((entry) => (entry.id === agentId ? nextAgent : entry))
+                      : [...existingAgents, nextAgent];
+
+                    state.agentsList = {
+                      defaultId: makeDefault ? agentId : (state.agentsList?.defaultId ?? agentId),
+                      mainKey: state.agentsList?.mainKey ?? "main",
+                      scope: state.agentsList?.scope ?? "workspace",
+                      agents: nextAgents,
+                    };
+                    state.agentsSelectedId = agentId;
+                    state.agentsPanel = "overview";
+                    state.agentFilesList = null;
+                    state.agentFilesError = null;
+                    state.agentFilesLoading = false;
+                    state.agentFileActive = null;
+                    state.agentFileContents = {};
+                    state.agentFileDrafts = {};
+                    state.agentSkillsReport = null;
+                    state.agentSkillsError = null;
+                    state.agentSkillsLoadingAgentId = null;
+                    state.agentSkillsAgentId = null;
+                    state.toolsCatalogResult = null;
+                    state.toolsCatalogError = null;
+                    state.toolsCatalogLoading = false;
                   },
                 }),
               )
@@ -1276,16 +1706,89 @@ export function renderApp(state: AppViewState) {
                   report: state.skillsReport,
                   error: state.skillsError,
                   filter: state.skillsFilter,
+                  page: state.skillsPage,
+                  configForm: state.configForm,
+                  configLoading: state.configLoading,
+                  selectedAgentReport: state.agentSkillsReport,
+                  selectedAgentReportAgentId: state.agentSkillsAgentId,
+                  selectedAgentLoading: state.agentSkillsLoading,
+                  agentsList: state.agentsList,
+                  selectedAgentId:
+                    state.agentsSelectedId ??
+                    state.agentsList?.defaultId ??
+                    state.agentsList?.agents?.[0]?.id ??
+                    null,
                   edits: state.skillEdits,
                   messages: state.skillMessages,
                   busyKey: state.skillsBusyKey,
-                  onFilterChange: (next) => (state.skillsFilter = next),
-                  onRefresh: () => loadSkills(state, { clearMessages: true }),
-                  onToggle: (key, enabled) => updateSkillEnabled(state, key, enabled),
+                  onFilterChange: (next) => {
+                    state.skillsFilter = next;
+                    state.skillsPage = 0;
+                  },
+                  onPageChange: (next) => (state.skillsPage = Math.max(0, next)),
+                  onAgentChange: (agentId) => {
+                    state.agentsSelectedId = agentId;
+                    state.skillsPage = 0;
+                    state.agentSkillsReport = null;
+                    state.agentSkillsError = null;
+                    state.agentSkillsLoadingAgentId = null;
+                    state.agentSkillsAgentId = null;
+                    if (!state.configForm && !state.configLoading) {
+                      void loadConfig(state);
+                    }
+                    void loadAgentSkills(state, agentId);
+                  },
+                  onOpenAgentSkills: (agentId) => {
+                    state.agentsSelectedId = agentId;
+                    state.agentsPanel = "skills";
+                    state.setTab("agents" as import("./navigation.ts").Tab);
+                    void loadAgentSkills(state, agentId);
+                  },
+                  onRefresh: async () => {
+                    await loadSkills(state, { clearMessages: true });
+                    const agentId =
+                      state.agentsSelectedId ??
+                      state.agentsList?.defaultId ??
+                      state.agentsList?.agents?.[0]?.id ??
+                      null;
+                    if (agentId) {
+                      await loadAgentSkills(state, agentId);
+                    }
+                  },
+                  onToggle: async (key, enabled) => {
+                    await updateSkillEnabled(state, key, enabled);
+                    const agentId =
+                      state.agentsSelectedId ??
+                      state.agentsList?.defaultId ??
+                      state.agentsList?.agents?.[0]?.id ??
+                      null;
+                    if (agentId) {
+                      await loadAgentSkills(state, agentId);
+                    }
+                  },
                   onEdit: (key, value) => updateSkillEdit(state, key, value),
-                  onSaveKey: (key) => saveSkillApiKey(state, key),
-                  onInstall: (skillKey, name, installId) =>
-                    installSkill(state, skillKey, name, installId),
+                  onSaveKey: async (key) => {
+                    await saveSkillApiKey(state, key);
+                    const agentId =
+                      state.agentsSelectedId ??
+                      state.agentsList?.defaultId ??
+                      state.agentsList?.agents?.[0]?.id ??
+                      null;
+                    if (agentId) {
+                      await loadAgentSkills(state, agentId);
+                    }
+                  },
+                  onInstall: async (skillKey, name, installId) => {
+                    await installSkill(state, skillKey, name, installId);
+                    const agentId =
+                      state.agentsSelectedId ??
+                      state.agentsList?.defaultId ??
+                      state.agentsList?.agents?.[0]?.id ??
+                      null;
+                    if (agentId) {
+                      await loadAgentSkills(state, agentId);
+                    }
+                  },
                 }),
               )
             : nothing
@@ -1457,17 +1960,7 @@ export function renderApp(state: AppViewState) {
                 agentsList: state.agentsList,
                 currentAgentId: resolvedAgentId ?? "main",
                 onAgentChange: (agentId: string) => {
-                  state.sessionKey = buildAgentMainSessionKey({ agentId });
-                  state.chatMessages = [];
-                  state.chatStream = null;
-                  state.chatRunId = null;
-                  state.applySettings({
-                    ...state.settings,
-                    sessionKey: state.sessionKey,
-                    lastActiveSessionKey: state.sessionKey,
-                  });
-                  void loadChatHistory(state);
-                  void state.loadAssistantIdentity();
+                  switchChatSession(state, buildAgentMainSessionKey({ agentId }));
                 },
                 onNavigateToAgent: () => {
                   state.agentsSelectedId = resolvedAgentId;
@@ -1562,6 +2055,49 @@ export function renderApp(state: AppViewState) {
                   state.configActiveSection = section;
                   state.configActiveSubsection = null;
                 },
+                onOverviewSectionOpen: (section) => {
+                  if (section === "agents") {
+                    state.agentsSelectedId =
+                      state.agentsSelectedId ??
+                      state.agentsList?.defaultId ??
+                      state.agentsList?.agents?.[0]?.id ??
+                      "main";
+                    state.setTab("agents");
+                    return;
+                  }
+                  if (COMMUNICATION_SECTION_KEYS.includes(section as CommunicationSectionKey)) {
+                    state.communicationsActiveSection = section;
+                    state.communicationsActiveSubsection = null;
+                    state.setTab("communications");
+                    return;
+                  }
+                  if (AUTOMATION_SECTION_KEYS.includes(section as AutomationSectionKey)) {
+                    state.automationActiveSection = section;
+                    state.automationActiveSubsection = null;
+                    state.setTab("automation");
+                    return;
+                  }
+                  if (INFRASTRUCTURE_SECTION_KEYS.includes(section as InfrastructureSectionKey)) {
+                    state.infrastructureActiveSection = section;
+                    state.infrastructureActiveSubsection = null;
+                    state.setTab("infrastructure");
+                    return;
+                  }
+                  if (AI_AGENTS_SECTION_KEYS.includes(section as AiAgentsSectionKey)) {
+                    state.aiAgentsActiveSection = section;
+                    state.aiAgentsActiveSubsection = null;
+                    state.setTab("aiAgents");
+                    return;
+                  }
+                  if (APPEARANCE_SECTION_KEYS.includes(section as AppearanceSectionKey)) {
+                    state.appearanceActiveSection = section;
+                    state.appearanceActiveSubsection = null;
+                    state.setTab("appearance");
+                    return;
+                  }
+                  state.configActiveSection = section;
+                  state.configActiveSubsection = null;
+                },
                 onSubsectionChange: (section) => (state.configActiveSubsection = section),
                 onReload: () => loadConfig(state),
                 onSave: () => saveConfig(state),
@@ -1577,6 +2113,12 @@ export function renderApp(state: AppViewState) {
                 setBorderRadius: (v) => state.setBorderRadius(v),
                 gatewayUrl: state.settings.gatewayUrl,
                 assistantName: state.assistantName,
+                locale: state.settings.locale ?? i18n.getLocale(),
+                onLocaleChange: (locale) => {
+                  void i18n.setLocale(locale);
+                  state.applySettings({ ...state.settings, locale });
+                },
+                showRootOverview: true,
                 configPath: state.configSnapshot?.path ?? null,
                 excludeSections: [
                   ...COMMUNICATION_SECTION_KEYS,

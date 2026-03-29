@@ -15,7 +15,8 @@ This repo is the enterprise working copy derived from OpenClaw upstream.
 
 ## Enterprise Modules
 
-- `apps/admin-console`: Chinese admin console
+- `apps/desktop-shell`: application-side main entry and local operations shell
+- `apps/admin-console`: Chinese management console
 - `apps/control-api`: control plane API
 - `apps/runtime-api`: runtime bridge API
 - `apps/jobs`: async jobs and sync tasks

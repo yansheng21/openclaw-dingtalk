@@ -1,7 +1,9 @@
 import { html, nothing } from "lit";
+import { t } from "../../i18n/index.ts";
 import { formatRelativeTimestamp } from "../format.ts";
 import type { ChannelAccountSnapshot, NostrStatus } from "../types.ts";
 import { renderChannelConfigSection } from "./channels.config.ts";
+import { formatBooleanLabel } from "./channels.shared.ts";
 import {
   renderNostrProfileForm,
   type NostrProfileFormState,
@@ -14,7 +16,7 @@ import type { ChannelsProps } from "./channels.types.ts";
  */
 function truncatePubkey(pubkey: string | null | undefined): string {
   if (!pubkey) {
-    return "n/a";
+    return t("common.na");
   }
   if (pubkey.length <= 20) {
     return pubkey;
@@ -27,6 +29,7 @@ export function renderNostrCard(params: {
   nostr?: NostrStatus | null;
   nostrAccounts: ChannelAccountSnapshot[];
   accountCountLabel: unknown;
+  selectedAccount?: ChannelAccountSnapshot | null;
   /** Profile form state (optional - if provided, shows form) */
   profileFormState?: NostrProfileFormState | null;
   /** Profile form callbacks */
@@ -39,18 +42,18 @@ export function renderNostrCard(params: {
     nostr,
     nostrAccounts,
     accountCountLabel,
+    selectedAccount,
     profileFormState,
     profileFormCallbacks,
     onEditProfile,
   } = params;
-  const primaryAccount = nostrAccounts[0];
+  const primaryAccount = selectedAccount ?? nostrAccounts[0];
   const summaryConfigured = nostr?.configured ?? primaryAccount?.configured ?? false;
   const summaryRunning = nostr?.running ?? primaryAccount?.running ?? false;
   const summaryPublicKey =
     nostr?.publicKey ?? (primaryAccount as { publicKey?: string } | undefined)?.publicKey;
   const summaryLastStartAt = nostr?.lastStartAt ?? primaryAccount?.lastStartAt ?? null;
   const summaryLastError = nostr?.lastError ?? primaryAccount?.lastError ?? null;
-  const hasMultipleAccounts = nostrAccounts.length > 1;
   const showingForm = profileFormState !== null && profileFormState !== undefined;
 
   const renderAccountCard = (account: ChannelAccountSnapshot) => {
@@ -66,20 +69,22 @@ export function renderNostrCard(params: {
         </div>
         <div class="status-list account-card-status">
           <div>
-            <span class="label">Running</span>
-            <span>${account.running ? "Yes" : "No"}</span>
+            <span class="label">${t("channels.labels.running")}</span>
+            <span>${formatBooleanLabel(account.running)}</span>
           </div>
           <div>
-            <span class="label">Configured</span>
-            <span>${account.configured ? "Yes" : "No"}</span>
+            <span class="label">${t("channels.labels.configured")}</span>
+            <span>${formatBooleanLabel(account.configured)}</span>
           </div>
           <div>
-            <span class="label">Public Key</span>
+            <span class="label">${t("channels.labels.publicKey")}</span>
             <span class="monospace" title="${publicKey ?? ""}">${truncatePubkey(publicKey)}</span>
           </div>
           <div>
-            <span class="label">Last inbound</span>
-            <span>${account.lastInboundAt ? formatRelativeTimestamp(account.lastInboundAt) : "n/a"}</span>
+            <span class="label">${t("channels.labels.lastInbound")}</span>
+            <span>
+              ${account.lastInboundAt ? formatRelativeTimestamp(account.lastInboundAt) : t("common.na")}
+            </span>
           </div>
           ${
             account.lastError
@@ -99,7 +104,7 @@ export function renderNostrCard(params: {
       return renderNostrProfileForm({
         state: profileFormState,
         callbacks: profileFormCallbacks,
-        accountId: nostrAccounts[0]?.accountId ?? "default",
+        accountId: primaryAccount?.accountId ?? "default",
       });
     }
 
@@ -121,9 +126,9 @@ export function renderNostrCard(params: {
     const hasAnyProfileData = name || displayName || about || picture || nip05;
 
     return html`
-      <div style="margin-top: 16px; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
+        <div style="margin-top: 16px; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <div style="font-weight: 500;">Profile</div>
+          <div style="font-weight: 500;">${t("channels.nostr.profile")}</div>
           ${
             summaryConfigured
               ? html`
@@ -132,7 +137,7 @@ export function renderNostrCard(params: {
                   @click=${onEditProfile}
                   style="font-size: 12px; padding: 4px 8px;"
                 >
-                  Edit Profile
+                  ${t("channels.actions.editProfile")}
                 </button>
               `
               : nothing
@@ -148,7 +153,7 @@ export function renderNostrCard(params: {
                       <div style="margin-bottom: 8px;">
                         <img
                           src=${picture}
-                          alt="Profile picture"
+                          alt=${t("channels.nostr.pictureAlt")}
                           style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid var(--border-color);"
                           @error=${(e: Event) => {
                             (e.target as HTMLImageElement).style.display = "none";
@@ -158,23 +163,23 @@ export function renderNostrCard(params: {
                     `
                     : nothing
                 }
-                ${name ? html`<div><span class="label">Name</span><span>${name}</span></div>` : nothing}
+                ${name ? html`<div><span class="label">${t("channels.labels.name")}</span><span>${name}</span></div>` : nothing}
                 ${
                   displayName
-                    ? html`<div><span class="label">Display Name</span><span>${displayName}</span></div>`
+                    ? html`<div><span class="label">${t("channels.labels.displayName")}</span><span>${displayName}</span></div>`
                     : nothing
                 }
                 ${
                   about
-                    ? html`<div><span class="label">About</span><span style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">${about}</span></div>`
+                    ? html`<div><span class="label">${t("channels.labels.about")}</span><span style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">${about}</span></div>`
                     : nothing
                 }
-                ${nip05 ? html`<div><span class="label">NIP-05</span><span>${nip05}</span></div>` : nothing}
+                ${nip05 ? html`<div><span class="label">${t("channels.labels.nip05")}</span><span>${nip05}</span></div>` : nothing}
               </div>
             `
             : html`
                 <div style="color: var(--text-muted); font-size: 13px">
-                  No profile set. Click "Edit Profile" to add your name, bio, and avatar.
+                  ${t("channels.nostr.noProfile")}
                 </div>
               `
         }
@@ -185,35 +190,34 @@ export function renderNostrCard(params: {
   return html`
     <div class="card">
       <div class="card-title">Nostr</div>
-      <div class="card-sub">Decentralized DMs via Nostr relays (NIP-04).</div>
       ${accountCountLabel}
 
       ${
-        hasMultipleAccounts
+        selectedAccount
           ? html`
-            <div class="account-card-list">
-              ${nostrAccounts.map((account) => renderAccountCard(account))}
-            </div>
+              <div class="account-card-list">
+                ${renderAccountCard(selectedAccount)}
+              </div>
           `
           : html`
             <div class="status-list" style="margin-top: 16px;">
               <div>
-                <span class="label">Configured</span>
-                <span>${summaryConfigured ? "Yes" : "No"}</span>
+                <span class="label">${t("channels.labels.configured")}</span>
+                <span>${formatBooleanLabel(summaryConfigured)}</span>
               </div>
               <div>
-                <span class="label">Running</span>
-                <span>${summaryRunning ? "Yes" : "No"}</span>
+                <span class="label">${t("channels.labels.running")}</span>
+                <span>${formatBooleanLabel(summaryRunning)}</span>
               </div>
               <div>
-                <span class="label">Public Key</span>
+                <span class="label">${t("channels.labels.publicKey")}</span>
                 <span class="monospace" title="${summaryPublicKey ?? ""}"
                   >${truncatePubkey(summaryPublicKey)}</span
                 >
               </div>
               <div>
-                <span class="label">Last start</span>
-                <span>${summaryLastStartAt ? formatRelativeTimestamp(summaryLastStartAt) : "n/a"}</span>
+                <span class="label">${t("channels.labels.lastStart")}</span>
+                <span>${summaryLastStartAt ? formatRelativeTimestamp(summaryLastStartAt) : t("common.na")}</span>
               </div>
             </div>
           `
@@ -230,7 +234,9 @@ export function renderNostrCard(params: {
       ${renderChannelConfigSection({ channelId: "nostr", props })}
 
       <div class="row" style="margin-top: 12px;">
-        <button class="btn" @click=${() => props.onRefresh(false)}>Refresh</button>
+        <button class="btn" @click=${() => props.onRefresh(false)}>
+          ${t("channels.actions.refresh")}
+        </button>
       </div>
     </div>
   `;

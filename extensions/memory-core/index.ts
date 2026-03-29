@@ -10,7 +10,8 @@ export const buildPromptSection: MemoryPromptSectionBuilder = ({
   }
   const lines = [
     "## Memory Recall",
-    "Before answering anything about prior work, decisions, dates, people, preferences, or todos: run memory_search on MEMORY.md + memory/*.md; then use memory_get to pull only the needed lines. If low confidence after search, say you checked.",
+    "Before answering anything about prior work, decisions, dates, people, preferences, todos, manuals, synced knowledge bases, or enterprise documents: run memory_search first.",
+    "Search scope includes MEMORY.md, memory/*.md, and synced knowledge files such as memory/dingtalk-kb/**/*.md; then use memory_get to pull only the needed lines. If low confidence after search, say you checked.",
   ];
   if (citationsMode === "off") {
     lines.push(

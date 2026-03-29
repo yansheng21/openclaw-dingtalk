@@ -1,4 +1,5 @@
 import type { SessionEntry } from "../../config/sessions.js";
+import { resolveDmScope } from "../../config/dm-scope.js";
 import { buildAgentMainSessionKey } from "../../routing/session-key.js";
 import { parseAgentSessionKey } from "../../sessions/session-key-utils.js";
 import {
@@ -163,7 +164,7 @@ export function maybeRetireLegacyMainDeliveryRoute(params: {
   isGroup: boolean;
   ctx: MsgContext;
 }): LegacyMainDeliveryRetirement | undefined {
-  const dmScope = params.sessionCfg?.dmScope ?? "main";
+  const dmScope = resolveDmScope(params.sessionCfg?.dmScope);
   if (dmScope === "main" || params.isGroup) {
     return undefined;
   }

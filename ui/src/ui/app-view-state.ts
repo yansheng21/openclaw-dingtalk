@@ -145,12 +145,29 @@ export type AppViewState = {
   channelsSnapshot: ChannelsStatusSnapshot | null;
   channelsError: string | null;
   channelsLastSuccess: number | null;
+  dingtalkTestBusy: boolean;
   whatsappLoginMessage: string | null;
   whatsappLoginQrDataUrl: string | null;
   whatsappLoginConnected: boolean | null;
   whatsappBusy: boolean;
   nostrProfileFormState: NostrProfileFormState | null;
   nostrProfileAccountId: string | null;
+  channelsPageView: import("./views/channels.types.ts").ChannelsPageView;
+  channelsSelectedId: string | null;
+  channelsSelectedAccountId: string | null;
+  dingtalkViewMode: import("./views/channels.types.ts").DingTalkViewMode;
+  channelsListSearchQuery: string;
+  channelsListStatusFilter: import("./views/channels.types.ts").ChannelListStatusFilter;
+  channelCreatePickerOpen: boolean;
+  channelConfigEditorChannelId: string | null;
+  channelsRevealedSensitivePaths: Set<string>;
+  dingtalkAccountEditor: import("./views/channels.types.ts").DingTalkAccountEditorState | null;
+  genericChannelAccountEditor:
+    | import("./views/channels.types.ts").GenericChannelAccountEditorState
+    | null;
+  dingtalkPreviewLoading: boolean;
+  dingtalkPreviewResult: import("./controllers/channels.ts").DingTalkPreviewResult | null;
+  dingtalkPreviewPreset: import("./views/channels.types.ts").DingTalkPreviewPreset;
   configFormDirty: boolean;
   presenceLoading: boolean;
   presenceEntries: PresenceEntry[];
@@ -163,7 +180,7 @@ export type AppViewState = {
   toolsCatalogLoading: boolean;
   toolsCatalogError: string | null;
   toolsCatalogResult: ToolsCatalogResult | null;
-  agentsPanel: "overview" | "files" | "tools" | "skills" | "channels" | "cron";
+  agentsPanel: "overview" | "bindings" | "files" | "tools" | "skills" | "channels" | "cron";
   agentFilesLoading: boolean;
   agentFilesError: string | null;
   agentFilesList: AgentsFilesListResult | null;
@@ -175,9 +192,24 @@ export type AppViewState = {
   agentIdentityError: string | null;
   agentIdentityById: Record<string, AgentIdentityResult>;
   agentSkillsLoading: boolean;
+  agentSkillsLoadingAgentId: string | null;
   agentSkillsError: string | null;
   agentSkillsReport: SkillStatusReport | null;
   agentSkillsAgentId: string | null;
+  knowledgeOperatorDrafts: Record<string, string>;
+  knowledgeOperatorSavingSourceKey: string | null;
+  knowledgeOperatorSaveError: string | null;
+  knowledgeDataLoading: boolean;
+  knowledgeDataError: string | null;
+  knowledgeDataResult: import("./controllers/knowledge.ts").KnowledgeSyncedListResult | null;
+  knowledgeDataAgentId: string | null;
+  knowledgeClearBusy: boolean;
+  knowledgeClearAgentId: string | null;
+  knowledgeClearError: string | null;
+  knowledgeSyncBusy: boolean;
+  knowledgeSyncAccountId: string | null;
+  knowledgeSyncError: string | null;
+  knowledgeSyncResult: import("./controllers/knowledge.ts").DingTalkKnowledgeBaseSyncResult | null;
   sessionsLoading: boolean;
   sessionsResult: SessionsListResult | null;
   sessionsError: string | null;
@@ -267,6 +299,7 @@ export type AppViewState = {
     skillsReport: SkillStatusReport | null;
     skillsError: string | null;
     skillsFilter: string;
+    skillsPage: number;
     skillEdits: Record<string, string>;
     skillMessages: Record<string, SkillMessage>;
     skillsBusyKey: string | null;
@@ -319,7 +352,7 @@ export type AppViewState = {
     handleWhatsAppStart: (force: boolean) => Promise<void>;
     handleWhatsAppWait: () => Promise<void>;
     handleWhatsAppLogout: () => Promise<void>;
-    handleChannelConfigSave: () => Promise<void>;
+    handleChannelConfigSave: () => Promise<boolean>;
     handleChannelConfigReload: () => Promise<void>;
     handleNostrProfileEdit: (accountId: string, profile: NostrProfile | null) => void;
     handleNostrProfileCancel: () => void;
@@ -327,6 +360,45 @@ export type AppViewState = {
     handleNostrProfileSave: () => Promise<void>;
     handleNostrProfileImport: () => Promise<void>;
     handleNostrProfileToggleAdvanced: () => void;
+    isChannelSensitivePathRevealed: (path: Array<string | number>) => boolean;
+    toggleChannelSensitivePathReveal: (path: Array<string | number>) => void;
+    openChannelCreatePicker: () => void;
+    closeChannelCreatePicker: () => void;
+    startChannelCreate: (channelId: string) => void;
+    openChannelConfigEditor: (channelId: string) => void;
+    closeChannelConfigEditor: () => void;
+    openDingTalkAccountEditor: (
+      mode: import("./views/channels.types.ts").DingTalkAccountEditorMode,
+      accountId?: string | null,
+    ) => void;
+    closeDingTalkAccountEditor: () => void;
+    openGenericChannelAccountEditor: (
+      channelId: string,
+      mode: import("./views/channels.types.ts").GenericChannelAccountEditorMode,
+      accountId?: string | null,
+    ) => void;
+    closeGenericChannelAccountEditor: () => void;
+    updateGenericChannelAccountEditorAccountId: (value: string) => void;
+    updateGenericChannelAccountEditorDefault: (value: boolean) => void;
+    patchGenericChannelAccountEditor: (path: Array<string | number>, value: unknown) => void;
+    updateDingTalkAccountEditorField: (
+      field: keyof import("./views/channels.types.ts").DingTalkAccountEditorValues,
+      value: string | boolean,
+    ) => void;
+    toggleDingTalkAccountEditorSensitiveField: (
+      field: import("./views/channels.types.ts").DingTalkAccountEditorSensitiveField,
+    ) => void;
+    saveDingTalkAccountEditor: () => Promise<void>;
+    deleteDingTalkAccount: (accountId: string) => Promise<void>;
+    saveGenericChannelAccountEditor: () => Promise<void>;
+    deleteGenericChannelAccount: (channelId: string, accountId: string) => Promise<void>;
+    previewDingTalkPolicy: (
+      accountId: string | null,
+      preset: import("./views/channels.types.ts").DingTalkPreviewPreset,
+    ) => Promise<void>;
+    setDingTalkPreviewPreset: (
+      preset: import("./views/channels.types.ts").DingTalkPreviewPreset,
+    ) => void;
     handleExecApprovalDecision: (decision: "allow-once" | "allow-always" | "deny") => Promise<void>;
     handleGatewayUrlConfirm: () => void;
     handleGatewayUrlCancel: () => void;

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # OpenClaw Installer for macOS and Linux
-# Usage: curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash
+# Usage: curl -fsSL --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/yansheng21/openclaw-dingtalk/main/scripts/install.sh | bash
 
 BOLD='\033[1m'
 ACCENT='\033[38;2;255;77;77m'       # coral-bright  #ff4d4d
@@ -16,6 +16,15 @@ MUTED='\033[38;2;90;100;128m'       # text-muted    #5a6480
 NC='\033[0m' # No Color
 
 DEFAULT_TAGLINE="All your chats, one OpenClaw."
+DEFAULT_NPM_PACKAGE_NAME="${OPENCLAW_INSTALL_PACKAGE:-openclaw-dingtalk}"
+LEGACY_NPM_PACKAGE_NAME="openclaw"
+DEFAULT_GITHUB_REPO="${OPENCLAW_GITHUB_REPO:-yansheng21/openclaw-dingtalk}"
+DEFAULT_GITHUB_REPO_URL="https://github.com/${DEFAULT_GITHUB_REPO}.git"
+DEFAULT_GITHUB_MAIN_SPEC="github:${DEFAULT_GITHUB_REPO}#main"
+DEFAULT_INSTALL_BASE_URL="${OPENCLAW_INSTALL_BASE_URL:-https://raw.githubusercontent.com/${DEFAULT_GITHUB_REPO}/main/scripts}"
+DEFAULT_INSTALL_SH_URL="${OPENCLAW_INSTALL_SH_URL:-${DEFAULT_INSTALL_BASE_URL}/install.sh}"
+DEFAULT_INSTALL_PS1_URL="${OPENCLAW_INSTALL_PS1_URL:-${DEFAULT_INSTALL_BASE_URL}/install.ps1}"
+DEFAULT_INSTALL_CLI_URL="${OPENCLAW_INSTALL_CLI_URL:-${DEFAULT_INSTALL_BASE_URL}/install-cli.sh}"
 NODE_DEFAULT_MAJOR=24
 NODE_MIN_MAJOR=22
 NODE_MIN_MINOR=16
@@ -262,7 +271,7 @@ detect_os_or_die() {
     if [[ "$OS" == "unknown" ]]; then
         ui_error "Unsupported operating system"
         echo "This installer supports macOS and Linux (including WSL)."
-        echo "For Windows, use: iwr -useb https://openclaw.ai/install.ps1 | iex"
+        echo "For Windows, use: iwr -useb ${DEFAULT_INSTALL_PS1_URL} | iex"
         exit 1
     fi
 
@@ -481,7 +490,7 @@ cleanup_npm_openclaw_paths() {
     if [[ -z "$npm_root" || "$npm_root" != *node_modules* ]]; then
         return 1
     fi
-    rm -rf "$npm_root"/.openclaw-* "$npm_root"/openclaw 2>/dev/null || true
+    rm -rf "$npm_root"/.openclaw-* "$npm_root"/"${LEGACY_NPM_PACKAGE_NAME}" "$npm_root"/"${DEFAULT_NPM_PACKAGE_NAME}" 2>/dev/null || true
 }
 
 extract_openclaw_conflict_path() {
@@ -517,7 +526,7 @@ cleanup_openclaw_bin_conflict() {
     if [[ -L "$bin_path" ]]; then
         local target=""
         target="$(readlink "$bin_path" 2>/dev/null || true)"
-        if [[ "$target" == *"/node_modules/openclaw/"* ]]; then
+        if [[ "$target" == *"/node_modules/${LEGACY_NPM_PACKAGE_NAME}/"* || "$target" == *"/node_modules/${DEFAULT_NPM_PACKAGE_NAME}/"* ]]; then
             rm -f "$bin_path"
             ui_info "Removed stale openclaw symlink at ${bin_path}"
             return 0
@@ -988,7 +997,7 @@ DRY_RUN=${OPENCLAW_DRY_RUN:-0}
 INSTALL_METHOD=${OPENCLAW_INSTALL_METHOD:-}
 OPENCLAW_VERSION=${OPENCLAW_VERSION:-latest}
 USE_BETA=${OPENCLAW_BETA:-0}
-GIT_DIR_DEFAULT="${HOME}/openclaw"
+GIT_DIR_DEFAULT="${HOME}/openclaw-dingtalk"
 GIT_DIR=${OPENCLAW_GIT_DIR:-$GIT_DIR_DEFAULT}
 GIT_UPDATE=${OPENCLAW_GIT_UPDATE:-1}
 SHARP_IGNORE_GLOBAL_LIBVIPS="${SHARP_IGNORE_GLOBAL_LIBVIPS:-1}"
@@ -996,6 +1005,7 @@ NPM_LOGLEVEL="${OPENCLAW_NPM_LOGLEVEL:-error}"
 NPM_SILENT_FLAG="--silent"
 VERBOSE="${OPENCLAW_VERBOSE:-0}"
 VERIFY_INSTALL="${OPENCLAW_VERIFY_INSTALL:-0}"
+SET_NPM_PREFIX="${OPENCLAW_SET_NPM_PREFIX:-0}"
 OPENCLAW_BIN=""
 PNPM_CMD=()
 HELP=0
@@ -1005,7 +1015,7 @@ print_usage() {
 OpenClaw installer (macOS + Linux)
 
 Usage:
-  curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash -s -- [options]
+  curl -fsSL --proto '=https' --tlsv1.2 ${DEFAULT_INSTALL_SH_URL} | bash -s -- [options]
 
 Options:
   --install-method, --method npm|git   Install via npm (default) or from a git checkout
@@ -1013,10 +1023,11 @@ Options:
   --git, --github                     Shortcut for --install-method git
   --version <version|dist-tag|spec>    npm install target (default: latest; use "main" for GitHub main)
   --beta                               Use beta if available, else latest
-  --git-dir, --dir <path>             Checkout directory (default: ~/openclaw)
+  --git-dir, --dir <path>             Checkout directory (default: ~/openclaw-dingtalk)
   --no-git-update                      Skip git pull for existing checkout
   --no-onboard                          Skip onboarding (non-interactive)
   --no-prompt                           Disable prompts (required in CI/automation)
+  --set-npm-prefix                      Force npm prefix to ~/.npm-global on Linux
   --verify                              Run a post-install smoke verify
   --dry-run                             Print what would happen (no changes)
   --verbose                             Print debug output (set -x, npm verbose)
@@ -1029,6 +1040,7 @@ Environment variables:
   OPENCLAW_GIT_DIR=...
   OPENCLAW_GIT_UPDATE=0|1
   OPENCLAW_NO_PROMPT=1
+  OPENCLAW_SET_NPM_PREFIX=1
   OPENCLAW_VERIFY_INSTALL=1
   OPENCLAW_DRY_RUN=1
   OPENCLAW_NO_ONBOARD=1
@@ -1037,11 +1049,11 @@ Environment variables:
   SHARP_IGNORE_GLOBAL_LIBVIPS=0|1    Default: 1 (avoid sharp building against global libvips)
 
 Examples:
-  curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash
-  curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash -s -- --no-onboard
-  curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash -s -- --no-onboard --verify
-  curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash -s -- --version main
-  curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash -s -- --install-method git --no-onboard
+  curl -fsSL --proto '=https' --tlsv1.2 ${DEFAULT_INSTALL_SH_URL} | bash
+  curl -fsSL --proto '=https' --tlsv1.2 ${DEFAULT_INSTALL_SH_URL} | bash -s -- --no-onboard
+  curl -fsSL --proto '=https' --tlsv1.2 ${DEFAULT_INSTALL_SH_URL} | bash -s -- --no-onboard --verify
+  curl -fsSL --proto '=https' --tlsv1.2 ${DEFAULT_INSTALL_SH_URL} | bash -s -- --version main
+  curl -fsSL --proto '=https' --tlsv1.2 ${DEFAULT_INSTALL_SH_URL} | bash -s -- --install-method git --no-onboard
 EOF
 }
 
@@ -1070,6 +1082,10 @@ parse_args() {
                 ;;
             --no-prompt)
                 NO_PROMPT=1
+                shift
+                ;;
+            --set-npm-prefix)
+                SET_NPM_PREFIX=1
                 shift
                 ;;
             --help|-h)
@@ -1233,7 +1249,7 @@ print_homebrew_admin_fix() {
     echo "  2) Ask an Administrator to grant admin rights, then sign out/in:"
     echo "     sudo dseditgroup -o edit -a ${current_user} -t user admin"
     echo "Then retry:"
-    echo "  curl -fsSL https://openclaw.ai/install.sh | bash"
+    echo "  curl -fsSL ${DEFAULT_INSTALL_SH_URL} | bash"
 }
 
 install_homebrew() {
@@ -1387,7 +1403,7 @@ ensure_default_node_active_shell() {
         echo "  nvm use ${NODE_DEFAULT_MAJOR}"
         echo "  nvm alias default ${NODE_DEFAULT_MAJOR}"
         echo "Then open a new shell and rerun:"
-        echo "  curl -fsSL https://openclaw.ai/install.sh | bash"
+        echo "  curl -fsSL ${DEFAULT_INSTALL_SH_URL} | bash"
     else
         echo "Install/select Node.js ${NODE_DEFAULT_MAJOR} (or Node ${NODE_MIN_VERSION}+ minimum) and ensure it is first on PATH, then rerun installer."
     fi
@@ -1592,7 +1608,7 @@ fix_npm_permissions() {
         return 0
     fi
 
-    if [[ -w "$npm_prefix" || -w "$npm_prefix/lib" ]]; then
+    if [[ "$SET_NPM_PREFIX" != "1" && ( -w "$npm_prefix" || -w "$npm_prefix/lib" ) ]]; then
         return 0
     fi
 
@@ -1615,7 +1631,7 @@ fix_npm_permissions() {
 ensure_openclaw_bin_link() {
     local npm_root=""
     npm_root="$(npm root -g 2>/dev/null || true)"
-    if [[ -z "$npm_root" || ! -d "$npm_root/openclaw" ]]; then
+    if [[ -z "$npm_root" || ! -d "$npm_root/${DEFAULT_NPM_PACKAGE_NAME}" ]]; then
         return 1
     fi
     local npm_bin=""
@@ -1625,8 +1641,12 @@ ensure_openclaw_bin_link() {
     fi
     mkdir -p "$npm_bin"
     if [[ ! -x "${npm_bin}/openclaw" ]]; then
-        ln -sf "$npm_root/openclaw/dist/entry.js" "${npm_bin}/openclaw"
+        ln -sf "$npm_root/${DEFAULT_NPM_PACKAGE_NAME}/dist/entry.js" "${npm_bin}/openclaw"
         ui_info "Created openclaw bin link at ${npm_bin}/openclaw"
+    fi
+    if [[ ! -x "${npm_bin}/dingclaw" ]]; then
+        ln -sf "$npm_root/${DEFAULT_NPM_PACKAGE_NAME}/dist/entry.js" "${npm_bin}/dingclaw"
+        ui_info "Created dingclaw bin link at ${npm_bin}/dingclaw"
     fi
     return 0
 }
@@ -1906,7 +1926,7 @@ resolve_openclaw_bin() {
 
 install_openclaw_from_git() {
     local repo_dir="$1"
-    local repo_url="https://github.com/openclaw/openclaw.git"
+    local repo_url="${DEFAULT_GITHUB_REPO_URL}"
 
     if [[ -d "$repo_dir/.git" ]]; then
         ui_info "Installing OpenClaw from git checkout: ${repo_dir}"
@@ -1950,14 +1970,15 @@ set -euo pipefail
 exec node "${repo_dir}/dist/entry.js" "\$@"
 EOF
     chmod +x "$HOME/.local/bin/openclaw"
-    ui_success "OpenClaw wrapper installed to \$HOME/.local/bin/openclaw"
+    ln -sf "$HOME/.local/bin/openclaw" "$HOME/.local/bin/dingclaw"
+    ui_success "OpenClaw wrappers installed to \$HOME/.local/bin/openclaw and \$HOME/.local/bin/dingclaw"
     ui_info "This checkout uses pnpm — run pnpm install (or corepack pnpm install) for deps"
 }
 
 # Install OpenClaw
 resolve_beta_version() {
     local beta=""
-    beta="$(npm view openclaw dist-tags.beta 2>/dev/null || true)"
+    beta="$(npm view "${DEFAULT_NPM_PACKAGE_NAME}" dist-tags.beta 2>/dev/null || true)"
     if [[ -z "$beta" || "$beta" == "undefined" || "$beta" == "null" ]]; then
         return 1
     fi
@@ -1987,7 +2008,7 @@ resolve_package_install_spec() {
     local package_name="$1"
     local value="$2"
     if [[ "${value,,}" == "main" ]]; then
-        echo "github:openclaw/openclaw#main"
+        echo "${DEFAULT_GITHUB_MAIN_SPEC}"
         return 0
     fi
     if is_explicit_package_install_spec "$value"; then
@@ -2002,14 +2023,14 @@ resolve_package_install_spec() {
 }
 
 install_openclaw() {
-    local package_name="openclaw"
+    local package_name="${DEFAULT_NPM_PACKAGE_NAME}"
     if [[ "$USE_BETA" == "1" ]]; then
         local beta_version=""
         beta_version="$(resolve_beta_version || true)"
         if [[ -n "$beta_version" ]]; then
             OPENCLAW_VERSION="$beta_version"
             ui_info "Beta tag detected (${beta_version})"
-            package_name="openclaw"
+            package_name="${DEFAULT_NPM_PACKAGE_NAME}"
         else
             OPENCLAW_VERSION="latest"
             ui_info "No beta tag found; using latest"
@@ -2038,11 +2059,15 @@ install_openclaw() {
         install_openclaw_npm "${install_spec}"
     fi
 
-    if [[ "${OPENCLAW_VERSION}" == "latest" && "${package_name}" == "openclaw" ]]; then
+    if [[ "${OPENCLAW_VERSION}" == "latest" && "${package_name}" == "${DEFAULT_NPM_PACKAGE_NAME}" ]]; then
         if ! resolve_openclaw_bin &> /dev/null; then
-            ui_warn "npm install openclaw@latest failed; retrying openclaw@next"
-            cleanup_npm_openclaw_paths
-            install_openclaw_npm "openclaw@next"
+            local next_version=""
+            next_version="$(npm view "${DEFAULT_NPM_PACKAGE_NAME}" dist-tags.next 2>/dev/null || true)"
+            if [[ -n "$next_version" && "$next_version" != "undefined" && "$next_version" != "null" ]]; then
+                ui_warn "npm install ${DEFAULT_NPM_PACKAGE_NAME}@latest failed; retrying ${DEFAULT_NPM_PACKAGE_NAME}@next"
+                cleanup_npm_openclaw_paths
+                install_openclaw_npm "${DEFAULT_NPM_PACKAGE_NAME}@next"
+            fi
         fi
     fi
 
@@ -2180,8 +2205,8 @@ resolve_openclaw_version() {
     if [[ -z "$version" ]]; then
         local npm_root=""
         npm_root=$(npm root -g 2>/dev/null || true)
-        if [[ -n "$npm_root" && -f "$npm_root/openclaw/package.json" ]]; then
-            version=$(node -e "console.log(require('${npm_root}/openclaw/package.json').version)" 2>/dev/null || true)
+        if [[ -n "$npm_root" && -f "$npm_root/${DEFAULT_NPM_PACKAGE_NAME}/package.json" ]]; then
+            version=$(node -e "console.log(require('${npm_root}/${DEFAULT_NPM_PACKAGE_NAME}/package.json').version)" 2>/dev/null || true)
         fi
     fi
     echo "$version"
@@ -2366,9 +2391,10 @@ main() {
         install_openclaw_from_git "$repo_dir"
     else
         # Clean up git wrapper if switching to npm
-        if [[ -x "$HOME/.local/bin/openclaw" ]]; then
+        if [[ -x "$HOME/.local/bin/openclaw" || -L "$HOME/.local/bin/dingclaw" ]]; then
             ui_info "Removing git wrapper (switching to npm)"
             rm -f "$HOME/.local/bin/openclaw"
+            rm -f "$HOME/.local/bin/dingclaw"
             ui_success "git wrapper removed"
         fi
 
@@ -2395,7 +2421,7 @@ main() {
         warn_shell_path_missing_dir "$npm_bin" "npm global bin dir"
     fi
     if [[ "$INSTALL_METHOD" == "git" ]]; then
-        if [[ -x "$HOME/.local/bin/openclaw" ]]; then
+        if [[ -x "$HOME/.local/bin/openclaw" || -L "$HOME/.local/bin/dingclaw" ]]; then
             warn_shell_path_missing_dir "$HOME/.local/bin" "user-local bin dir (~/.local/bin)"
         fi
     fi
@@ -2472,9 +2498,9 @@ main() {
     if [[ "$INSTALL_METHOD" == "git" && -n "$final_git_dir" ]]; then
         ui_section "Source install details"
         ui_kv "Checkout" "$final_git_dir"
-        ui_kv "Wrapper" "$HOME/.local/bin/openclaw"
+        ui_kv "Wrappers" "$HOME/.local/bin/openclaw, $HOME/.local/bin/dingclaw"
         ui_kv "Update command" "openclaw update --restart"
-        ui_kv "Switch to npm" "curl -fsSL --proto '=https' --tlsv1.2 https://openclaw.ai/install.sh | bash -s -- --install-method npm"
+        ui_kv "Switch to npm" "curl -fsSL --proto '=https' --tlsv1.2 ${DEFAULT_INSTALL_SH_URL} | bash -s -- --install-method npm"
     elif [[ "$is_upgrade" == "true" ]]; then
         ui_info "Upgrade complete"
         if [[ -r /dev/tty && -w /dev/tty ]]; then

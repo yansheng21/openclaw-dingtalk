@@ -144,6 +144,7 @@ export type ChannelMeta = {
 export type ChannelAccountSnapshot = {
   accountId: string;
   name?: string;
+  displayName?: string;
   enabled?: boolean;
   configured?: boolean;
   linked?: boolean;
@@ -174,7 +175,15 @@ export type ChannelAccountSnapshot = {
   lastRunActivityAt?: number | null;
   mode?: string;
   dmPolicy?: string;
+  groupPolicy?: string;
+  dmScope?: string;
+  sessionScopeSummary?: string;
+  isDefaultAccount?: boolean;
+  requireMention?: boolean;
   allowFrom?: string[];
+  groupAllowFrom?: string[];
+  clientId?: string;
+  clientSecretConfigured?: boolean;
   tokenSource?: string;
   botTokenSource?: string;
   appTokenSource?: string;

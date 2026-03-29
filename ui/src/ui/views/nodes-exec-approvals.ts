@@ -1,4 +1,5 @@
 import { html, nothing } from "lit";
+import { t } from "../../i18n/index.ts";
 import type {
   ExecApprovalsAllowlistEntry,
   ExecApprovalsFile,
@@ -54,17 +55,32 @@ type ExecApprovalsState = {
 
 const EXEC_APPROVALS_DEFAULT_SCOPE = "__defaults__";
 
-const SECURITY_OPTIONS: Array<{ value: ExecSecurity; label: string }> = [
-  { value: "deny", label: "Deny" },
-  { value: "allowlist", label: "Allowlist" },
-  { value: "full", label: "Full" },
-];
+const SECURITY_OPTIONS: ExecSecurity[] = ["deny", "allowlist", "full"];
+const ASK_OPTIONS: ExecAsk[] = ["off", "on-miss", "always"];
 
-const ASK_OPTIONS: Array<{ value: ExecAsk; label: string }> = [
-  { value: "off", label: "Off" },
-  { value: "on-miss", label: "On miss" },
-  { value: "always", label: "Always" },
-];
+function formatSecurityLabel(value: ExecSecurity) {
+  switch (value) {
+    case "allowlist":
+      return t("nodesPage.approvals.securityAllowlist");
+    case "full":
+      return t("nodesPage.approvals.securityFull");
+    case "deny":
+    default:
+      return t("nodesPage.approvals.securityDeny");
+  }
+}
+
+function formatAskLabel(value: ExecAsk) {
+  switch (value) {
+    case "always":
+      return t("nodesPage.approvals.askAlways");
+    case "on-miss":
+      return t("nodesPage.approvals.askOnMiss");
+    case "off":
+    default:
+      return t("nodesPage.approvals.askOff");
+  }
+}
 
 function normalizeSecurity(value?: string): ExecSecurity {
   if (value === "allowlist" || value === "full" || value === "deny") {
@@ -196,17 +212,15 @@ export function renderExecApprovals(state: ExecApprovalsState) {
     <section class="card">
       <div class="row" style="justify-content: space-between; align-items: center;">
         <div>
-          <div class="card-title">Exec approvals</div>
-          <div class="card-sub">
-            Allowlist and approval policy for <span class="mono">exec host=gateway/node</span>.
-          </div>
+          <div class="card-title">${t("nodesPage.approvals.title")}</div>
+          <div class="card-sub">${t("nodesPage.approvals.subtitle")}</div>
         </div>
         <button
           class="btn"
           ?disabled=${state.disabled || !state.dirty || !targetReady}
           @click=${state.onSave}
         >
-          ${state.saving ? "Saving…" : "Save"}
+          ${state.saving ? t("nodesPage.saving") : t("nodesPage.save")}
         </button>
       </div>
 
@@ -215,9 +229,9 @@ export function renderExecApprovals(state: ExecApprovalsState) {
       ${
         !ready
           ? html`<div class="row" style="margin-top: 12px; gap: 12px;">
-            <div class="muted">Load exec approvals to edit allowlists.</div>
+            <div class="muted">${t("nodesPage.approvals.loadPrompt")}</div>
             <button class="btn" ?disabled=${state.loading || !targetReady} @click=${state.onLoad}>
-              ${state.loading ? "Loading…" : "Load approvals"}
+              ${state.loading ? t("nodesPage.loading") : t("nodesPage.approvals.load")}
             </button>
           </div>`
           : html`
@@ -241,14 +255,12 @@ function renderExecApprovalsTarget(state: ExecApprovalsState) {
     <div class="list" style="margin-top: 12px;">
       <div class="list-item">
         <div class="list-main">
-          <div class="list-title">Target</div>
-          <div class="list-sub">
-            Gateway edits local approvals; node edits the selected node.
-          </div>
+          <div class="list-title">${t("nodesPage.approvals.targetTitle")}</div>
+          <div class="list-sub">${t("nodesPage.approvals.targetSubtitle")}</div>
         </div>
         <div class="list-meta">
           <label class="field">
-            <span>Host</span>
+            <span>${t("nodesPage.approvals.hostLabel")}</span>
             <select
               ?disabled=${state.disabled}
               @change=${(event: Event) => {
@@ -262,15 +274,19 @@ function renderExecApprovalsTarget(state: ExecApprovalsState) {
                 }
               }}
             >
-              <option value="gateway" ?selected=${state.target === "gateway"}>Gateway</option>
-              <option value="node" ?selected=${state.target === "node"}>Node</option>
+              <option value="gateway" ?selected=${state.target === "gateway"}>
+                ${t("nodesPage.approvals.gateway")}
+              </option>
+              <option value="node" ?selected=${state.target === "node"}>
+                ${t("nodesPage.approvals.node")}
+              </option>
             </select>
           </label>
           ${
             state.target === "node"
               ? html`
                 <label class="field">
-                  <span>Node</span>
+                  <span>${t("nodesPage.approvals.nodeLabel")}</span>
                   <select
                     ?disabled=${state.disabled || !hasNodes}
                     @change=${(event: Event) => {
@@ -279,7 +295,9 @@ function renderExecApprovalsTarget(state: ExecApprovalsState) {
                       state.onSelectTarget("node", value ? value : null);
                     }}
                   >
-                    <option value="" ?selected=${nodeValue === ""}>Select node</option>
+                    <option value="" ?selected=${nodeValue === ""}>
+                      ${t("nodesPage.approvals.selectNode")}
+                    </option>
                     ${state.targetNodes.map(
                       (node) =>
                         html`<option
@@ -299,7 +317,7 @@ function renderExecApprovalsTarget(state: ExecApprovalsState) {
       ${
         state.target === "node" && !hasNodes
           ? html`
-              <div class="muted">No nodes advertise exec approvals yet.</div>
+              <div class="muted">${t("nodesPage.approvals.noNodeTargets")}</div>
             `
           : nothing
       }
@@ -310,13 +328,13 @@ function renderExecApprovalsTarget(state: ExecApprovalsState) {
 function renderExecApprovalsTabs(state: ExecApprovalsState) {
   return html`
     <div class="row" style="margin-top: 12px; gap: 8px; flex-wrap: wrap;">
-      <span class="label">Scope</span>
+      <span class="label">${t("nodesPage.approvals.scopeLabel")}</span>
       <div class="row" style="gap: 8px; flex-wrap: wrap;">
         <button
           class="btn btn--sm ${state.selectedScope === EXEC_APPROVALS_DEFAULT_SCOPE ? "active" : ""}"
           @click=${() => state.onSelectScope(EXEC_APPROVALS_DEFAULT_SCOPE)}
         >
-          Defaults
+          ${t("nodesPage.approvals.defaultsTab")}
         </button>
         ${state.agents.map((agent) => {
           const label = agent.name?.trim() ? `${agent.name} (${agent.id})` : agent.id;
@@ -354,14 +372,20 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
     <div class="list" style="margin-top: 16px;">
       <div class="list-item">
         <div class="list-main">
-          <div class="list-title">Security</div>
+          <div class="list-title">${t("nodesPage.approvals.securityTitle")}</div>
           <div class="list-sub">
-            ${isDefaults ? "Default security mode." : `Default: ${defaults.security}.`}
+            ${
+              isDefaults
+                ? t("nodesPage.approvals.securityHelp")
+                : t("nodesPage.approvals.defaultValue", {
+                    value: formatSecurityLabel(defaults.security),
+                  })
+            }
           </div>
         </div>
         <div class="list-meta">
           <label class="field">
-            <span>Mode</span>
+            <span>${t("nodesPage.approvals.modeLabel")}</span>
             <select
               ?disabled=${state.disabled}
               @change=${(event: Event) => {
@@ -377,17 +401,16 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
               ${
                 !isDefaults
                   ? html`<option value="__default__" ?selected=${securityValue === "__default__"}>
-                    Use default (${defaults.security})
+                    ${t("nodesPage.approvals.useDefault", {
+                      value: formatSecurityLabel(defaults.security),
+                    })}
                   </option>`
                   : nothing
               }
               ${SECURITY_OPTIONS.map(
                 (option) =>
-                  html`<option
-                    value=${option.value}
-                    ?selected=${securityValue === option.value}
-                  >
-                    ${option.label}
+                  html`<option value=${option} ?selected=${securityValue === option}>
+                    ${formatSecurityLabel(option)}
                   </option>`,
               )}
             </select>
@@ -397,14 +420,20 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
 
       <div class="list-item">
         <div class="list-main">
-          <div class="list-title">Ask</div>
+          <div class="list-title">${t("nodesPage.approvals.askTitle")}</div>
           <div class="list-sub">
-            ${isDefaults ? "Default prompt policy." : `Default: ${defaults.ask}.`}
+            ${
+              isDefaults
+                ? t("nodesPage.approvals.askHelp")
+                : t("nodesPage.approvals.defaultValue", {
+                    value: formatAskLabel(defaults.ask),
+                  })
+            }
           </div>
         </div>
         <div class="list-meta">
           <label class="field">
-            <span>Mode</span>
+            <span>${t("nodesPage.approvals.modeLabel")}</span>
             <select
               ?disabled=${state.disabled}
               @change=${(event: Event) => {
@@ -420,17 +449,16 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
               ${
                 !isDefaults
                   ? html`<option value="__default__" ?selected=${askValue === "__default__"}>
-                    Use default (${defaults.ask})
+                    ${t("nodesPage.approvals.useDefault", {
+                      value: formatAskLabel(defaults.ask),
+                    })}
                   </option>`
                   : nothing
               }
               ${ASK_OPTIONS.map(
                 (option) =>
-                  html`<option
-                    value=${option.value}
-                    ?selected=${askValue === option.value}
-                  >
-                    ${option.label}
+                  html`<option value=${option} ?selected=${askValue === option}>
+                    ${formatAskLabel(option)}
                   </option>`,
               )}
             </select>
@@ -440,18 +468,20 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
 
       <div class="list-item">
         <div class="list-main">
-          <div class="list-title">Ask fallback</div>
+          <div class="list-title">${t("nodesPage.approvals.askFallbackTitle")}</div>
           <div class="list-sub">
             ${
               isDefaults
-                ? "Applied when the UI prompt is unavailable."
-                : `Default: ${defaults.askFallback}.`
+                ? t("nodesPage.approvals.askFallbackHelp")
+                : t("nodesPage.approvals.defaultValue", {
+                    value: formatSecurityLabel(defaults.askFallback),
+                  })
             }
           </div>
         </div>
         <div class="list-meta">
           <label class="field">
-            <span>Fallback</span>
+            <span>${t("nodesPage.approvals.fallbackLabel")}</span>
             <select
               ?disabled=${state.disabled}
               @change=${(event: Event) => {
@@ -467,17 +497,16 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
               ${
                 !isDefaults
                   ? html`<option value="__default__" ?selected=${askFallbackValue === "__default__"}>
-                    Use default (${defaults.askFallback})
+                    ${t("nodesPage.approvals.useDefault", {
+                      value: formatSecurityLabel(defaults.askFallback),
+                    })}
                   </option>`
                   : nothing
               }
               ${SECURITY_OPTIONS.map(
                 (option) =>
-                  html`<option
-                    value=${option.value}
-                    ?selected=${askFallbackValue === option.value}
-                  >
-                    ${option.label}
+                  html`<option value=${option} ?selected=${askFallbackValue === option}>
+                    ${formatSecurityLabel(option)}
                   </option>`,
               )}
             </select>
@@ -487,20 +516,26 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
 
       <div class="list-item">
         <div class="list-main">
-          <div class="list-title">Auto-allow skill CLIs</div>
+          <div class="list-title">${t("nodesPage.approvals.autoAllowTitle")}</div>
           <div class="list-sub">
             ${
               isDefaults
-                ? "Allow skill executables listed by the Gateway."
+                ? t("nodesPage.approvals.autoAllowHelp")
                 : autoIsDefault
-                  ? `Using default (${defaults.autoAllowSkills ? "on" : "off"}).`
-                  : `Override (${autoEffective ? "on" : "off"}).`
+                  ? t("nodesPage.approvals.autoAllowInherited", {
+                      value: defaults.autoAllowSkills
+                        ? t("common.enabled")
+                        : t("common.disabled"),
+                    })
+                  : t("nodesPage.approvals.autoAllowOverride", {
+                      value: autoEffective ? t("common.enabled") : t("common.disabled"),
+                    })
             }
           </div>
         </div>
         <div class="list-meta">
           <label class="field">
-            <span>Enabled</span>
+            <span>${t("common.enabled")}</span>
             <input
               type="checkbox"
               ?disabled=${state.disabled}
@@ -518,7 +553,7 @@ function renderExecApprovalsPolicy(state: ExecApprovalsState) {
                 ?disabled=${state.disabled}
                 @click=${() => state.onRemove([...basePath, "autoAllowSkills"])}
               >
-                Use default
+                ${t("nodesPage.approvals.useDefaultAction")}
               </button>`
               : nothing
           }
@@ -534,8 +569,8 @@ function renderExecApprovalsAllowlist(state: ExecApprovalsState) {
   return html`
     <div class="row" style="margin-top: 18px; justify-content: space-between;">
       <div>
-        <div class="card-title">Allowlist</div>
-        <div class="card-sub">Case-insensitive glob patterns.</div>
+        <div class="card-title">${t("nodesPage.approvals.allowlistTitle")}</div>
+        <div class="card-sub">${t("nodesPage.approvals.allowlistSubtitle")}</div>
       </div>
       <button
         class="btn btn--sm"
@@ -545,14 +580,14 @@ function renderExecApprovalsAllowlist(state: ExecApprovalsState) {
           state.onPatch(allowlistPath, next);
         }}
       >
-        Add pattern
+        ${t("nodesPage.approvals.addPattern")}
       </button>
     </div>
     <div class="list" style="margin-top: 12px;">
       ${
         entries.length === 0
           ? html`
-              <div class="muted">No allowlist entries yet.</div>
+              <div class="muted">${t("nodesPage.approvals.allowlistEmpty")}</div>
             `
           : entries.map((entry, index) => renderAllowlistEntry(state, entry, index))
       }
@@ -565,20 +600,24 @@ function renderAllowlistEntry(
   entry: ExecApprovalsAllowlistEntry,
   index: number,
 ) {
-  const lastUsed = entry.lastUsedAt ? formatRelativeTimestamp(entry.lastUsedAt) : "never";
+  const lastUsed = entry.lastUsedAt
+    ? formatRelativeTimestamp(entry.lastUsedAt)
+    : t("nodesPage.approvals.never");
   const lastCommand = entry.lastUsedCommand ? clampText(entry.lastUsedCommand, 120) : null;
   const lastPath = entry.lastResolvedPath ? clampText(entry.lastResolvedPath, 120) : null;
   return html`
     <div class="list-item">
       <div class="list-main">
-        <div class="list-title">${entry.pattern?.trim() ? entry.pattern : "New pattern"}</div>
-        <div class="list-sub">Last used: ${lastUsed}</div>
+        <div class="list-title">
+          ${entry.pattern?.trim() ? entry.pattern : t("nodesPage.approvals.newPattern")}
+        </div>
+        <div class="list-sub">${t("nodesPage.approvals.lastUsed", { time: lastUsed })}</div>
         ${lastCommand ? html`<div class="list-sub mono">${lastCommand}</div>` : nothing}
         ${lastPath ? html`<div class="list-sub mono">${lastPath}</div>` : nothing}
       </div>
       <div class="list-meta">
         <label class="field">
-          <span>Pattern</span>
+          <span>${t("nodesPage.approvals.patternLabel")}</span>
           <input
             type="text"
             .value=${entry.pattern ?? ""}
@@ -603,7 +642,7 @@ function renderAllowlistEntry(
             state.onRemove(["agents", state.selectedScope, "allowlist", index]);
           }}
         >
-          Remove
+          ${t("nodesPage.approvals.removePattern")}
         </button>
       </div>
     </div>

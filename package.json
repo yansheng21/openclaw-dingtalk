@@ -1,20 +1,21 @@
 {
-  "name": "openclaw",
-  "version": "2026.3.22",
-  "description": "Multi-channel AI gateway with extensible messaging integrations",
+  "name": "openclaw-dingtalk",
+  "version": "2026.3.29",
+  "description": "DingTalk-focused OpenClaw enterprise gateway with extensible AI and channel integrations",
   "keywords": [],
-  "homepage": "https://github.com/openclaw/openclaw#readme",
+  "homepage": "https://github.com/yansheng21/openclaw-dingtalk#readme",
   "bugs": {
-    "url": "https://github.com/openclaw/openclaw/issues"
+    "url": "https://github.com/yansheng21/openclaw-dingtalk/issues"
   },
   "license": "MIT",
   "author": "",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/openclaw/openclaw.git"
+    "url": "git+https://github.com/yansheng21/openclaw-dingtalk.git"
   },
   "bin": {
-    "openclaw": "openclaw.mjs"
+    "openclaw": "openclaw.mjs",
+    "dingclaw": "openclaw.mjs"
   },
   "directories": {
     "doc": "docs",
@@ -35,6 +36,9 @@
   ],
   "type": "module",
   "main": "dist/index.js",
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": "./dist/index.js",
     "./plugin-sdk": {
@@ -96,6 +100,10 @@
     "./plugin-sdk/config-runtime": {
       "types": "./dist/plugin-sdk/config-runtime.d.ts",
       "default": "./dist/plugin-sdk/config-runtime.js"
+    },
+    "./plugin-sdk/compat": {
+      "types": "./dist/plugin-sdk/src/plugin-sdk/compat.d.ts",
+      "default": "./dist/plugin-sdk/compat.js"
     },
     "./plugin-sdk/reply-runtime": {
       "types": "./dist/plugin-sdk/reply-runtime.d.ts",
@@ -586,6 +594,10 @@
     "android:test": "cd apps/android && ./gradlew :app:testPlayDebugUnitTest",
     "android:test:integration": "OPENCLAW_LIVE_TEST=1 OPENCLAW_LIVE_ANDROID_NODE=1 vitest run --config vitest.live.config.ts src/gateway/android-node.capabilities.live.test.ts",
     "android:test:third-party": "cd apps/android && ./gradlew :app:testThirdPartyDebugUnitTest",
+    "desktop:dev": "pnpm --dir apps/desktop-shell dev",
+    "desktop:start": "pnpm --dir apps/desktop-shell start",
+    "desktop:test": "pnpm --dir apps/desktop-shell test",
+    "admin:console": "pnpm --dir apps/admin-console start",
     "build": "pnpm canvas:a2ui:bundle && node scripts/tsdown-build.mjs && node scripts/runtime-postbuild.mjs && pnpm build:plugin-sdk:dts && node --import tsx scripts/write-plugin-sdk-entry-dts.ts && node --import tsx scripts/canvas-a2ui-copy.ts && node --import tsx scripts/copy-hook-metadata.ts && node --import tsx scripts/copy-export-html-templates.ts && node --import tsx scripts/write-build-info.ts && node --import tsx scripts/write-cli-startup-metadata.ts && node --import tsx scripts/write-cli-compat.ts",
     "build:docker": "node scripts/tsdown-build.mjs && node scripts/runtime-postbuild.mjs && node --import tsx scripts/canvas-a2ui-copy.ts && node --import tsx scripts/copy-hook-metadata.ts && node --import tsx scripts/copy-export-html-templates.ts && node --import tsx scripts/write-build-info.ts && node --import tsx scripts/write-cli-startup-metadata.ts && node --import tsx scripts/write-cli-compat.ts",
     "build:plugin-sdk:dts": "tsc -p tsconfig.plugin-sdk.dts.json",
@@ -682,6 +694,7 @@
     "protocol:gen": "node --import tsx scripts/protocol-gen.ts",
     "protocol:gen:swift": "node --import tsx scripts/protocol-gen-swift.ts",
     "release:check": "pnpm config:docs:check && pnpm plugin-sdk:api:check && node scripts/stage-bundled-plugin-runtime-deps.mjs && node --import tsx scripts/release-check.ts",
+    "release:npm:check": "node --import tsx scripts/openclaw-npm-release-check.ts",
     "release:openclaw:npm:check": "node --import tsx scripts/openclaw-npm-release-check.ts",
     "release:plugins:npm:check": "node --import tsx scripts/plugin-npm-release-check.ts",
     "release:plugins:npm:plan": "node --import tsx scripts/plugin-npm-release-plan.ts",
@@ -858,6 +871,7 @@
       "@tloncorp/tlon-skill",
       "@whiskeysockets/baileys",
       "authenticate-pam",
+      "electron",
       "esbuild",
       "node-llama-cpp",
       "protobufjs",

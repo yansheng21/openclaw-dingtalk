@@ -122,15 +122,12 @@ describe("createFollowupRunner compaction", () => {
 
     await runner(queued);
 
-    expect(onBlockReply).toHaveBeenCalledTimes(3);
+    expect(onBlockReply).toHaveBeenCalledTimes(1);
     const calls = onBlockReply.mock.calls as unknown as Array<
       Array<{ text?: string; isCompactionNotice?: boolean }>
     >;
-    expect(calls[0]?.[0]?.text).toBe("🧹 Compacting context...");
-    expect(calls[0]?.[0]?.isCompactionNotice).toBe(true);
-    expect(calls[1]?.[0]?.text).toContain("Auto-compaction complete");
-    expect(calls[1]?.[0]?.isCompactionNotice).toBe(true);
-    expect(calls[2]?.[0]?.text).toBe("final");
+    expect(calls[0]?.[0]?.text).toBe("final");
+    expect(calls[0]?.[0]?.isCompactionNotice).toBeUndefined();
     expect(sessionStore.main.compactionCount).toBe(1);
   });
 
@@ -177,13 +174,12 @@ describe("createFollowupRunner compaction", () => {
 
     await runner(queued);
 
-    expect(onBlockReply).toHaveBeenCalledTimes(2);
+    expect(onBlockReply).toHaveBeenCalledTimes(1);
     const calls = onBlockReply.mock.calls as unknown as Array<
       Array<{ text?: string; isCompactionNotice?: boolean }>
     >;
-    expect(calls[0]?.[0]?.text).toContain("Auto-compaction complete");
-    expect(calls[0]?.[0]?.isCompactionNotice).toBe(true);
-    expect(calls[1]?.[0]?.text).toBe("final");
+    expect(calls[0]?.[0]?.text).toBe("final");
+    expect(calls[0]?.[0]?.isCompactionNotice).toBeUndefined();
     expect(sessionStore.main.compactionCount).toBe(2);
   });
 
@@ -234,25 +230,15 @@ describe("createFollowupRunner compaction", () => {
 
     await runner(queued);
 
-    expect(onBlockReply).toHaveBeenCalledTimes(3);
+    expect(onBlockReply).toHaveBeenCalledTimes(1);
     const calls = onBlockReply.mock.calls as unknown as Array<
       Array<{ text?: string; replyToId?: string; isCompactionNotice?: boolean }>
     >;
     expect(calls[0]?.[0]).toMatchObject({
-      text: "🧹 Compacting context...",
-      replyToId: "msg-42",
-      isCompactionNotice: true,
-    });
-    expect(calls[1]?.[0]).toMatchObject({
-      text: "✅ Context compacted (count 1).",
-      replyToId: "msg-42",
-      isCompactionNotice: true,
-    });
-    expect(calls[2]?.[0]).toMatchObject({
       text: "final",
       replyToId: "msg-42",
     });
-    expect(calls[2]?.[0]?.isCompactionNotice).toBeUndefined();
+    expect(calls[0]?.[0]?.isCompactionNotice).toBeUndefined();
   });
 
   it("does not count failed compaction end events in followup runs", async () => {

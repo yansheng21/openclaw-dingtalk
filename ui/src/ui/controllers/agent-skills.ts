@@ -5,29 +5,41 @@ export type AgentSkillsState = {
   client: GatewayBrowserClient | null;
   connected: boolean;
   agentSkillsLoading: boolean;
+  agentSkillsLoadingAgentId?: string | null;
   agentSkillsError: string | null;
   agentSkillsReport: SkillStatusReport | null;
   agentSkillsAgentId: string | null;
 };
 
 export async function loadAgentSkills(state: AgentSkillsState, agentId: string) {
-  if (!state.client || !state.connected) {
+  const resolvedAgentId = agentId.trim();
+  if (!state.client || !state.connected || !resolvedAgentId) {
     return;
   }
-  if (state.agentSkillsLoading) {
+  if (state.agentSkillsLoading && state.agentSkillsLoadingAgentId === resolvedAgentId) {
     return;
   }
   state.agentSkillsLoading = true;
+  state.agentSkillsLoadingAgentId = resolvedAgentId;
   state.agentSkillsError = null;
   try {
-    const res = await state.client.request("skills.status", { agentId });
+    const res = await state.client.request("skills.status", { agentId: resolvedAgentId });
+    if (state.agentSkillsLoadingAgentId !== resolvedAgentId) {
+      return;
+    }
     if (res) {
       state.agentSkillsReport = res as SkillStatusReport;
-      state.agentSkillsAgentId = agentId;
+      state.agentSkillsAgentId = resolvedAgentId;
     }
   } catch (err) {
+    if (state.agentSkillsLoadingAgentId !== resolvedAgentId) {
+      return;
+    }
     state.agentSkillsError = String(err);
   } finally {
-    state.agentSkillsLoading = false;
+    if (state.agentSkillsLoadingAgentId === resolvedAgentId) {
+      state.agentSkillsLoadingAgentId = null;
+      state.agentSkillsLoading = false;
+    }
   }
 }

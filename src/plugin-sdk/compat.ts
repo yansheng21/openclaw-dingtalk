@@ -19,6 +19,9 @@ if (shouldWarnCompatImport) {
 
 export { emptyPluginConfigSchema } from "../plugins/config-schema.js";
 export { resolveControlCommandGate } from "../channels/command-gating.js";
+export { createReplyPrefixOptions } from "../channels/reply-prefix.js";
+export { createTypingCallbacks } from "../channels/typing.js";
+export { logTypingFailure } from "../channels/logging.js";
 export { delegateCompactionToRuntime } from "../context-engine/delegate.js";
 export type { DiagnosticEventPayload } from "../infra/diagnostic-events.js";
 export { onDiagnosticEvent } from "../infra/diagnostic-events.js";

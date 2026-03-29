@@ -2,8 +2,7 @@ import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-
-const CORE_PACKAGE_NAMES = new Set(["openclaw"]);
+import { CORE_PACKAGE_NAMES } from "./core-package.js";
 
 function parsePackageName(raw: string): string | null {
   const parsed = JSON.parse(raw) as { name?: unknown };

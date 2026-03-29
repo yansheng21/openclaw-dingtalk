@@ -146,6 +146,12 @@ describe("security/dm-policy-shared", () => {
   it("does not infer pinned owner for wildcard/multi-owner/non-main scope", () => {
     expect(
       resolvePinnedMainDmOwnerFromAllowlist({
+        allowFrom: ["u123"],
+        normalizeEntry: (entry) => entry.trim(),
+      }),
+    ).toBeNull();
+    expect(
+      resolvePinnedMainDmOwnerFromAllowlist({
         dmScope: "main",
         allowFrom: ["*"],
         normalizeEntry: (entry) => entry.trim(),

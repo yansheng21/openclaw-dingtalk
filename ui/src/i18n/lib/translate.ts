@@ -1,7 +1,9 @@
 import { getSafeLocalStorage } from "../../local-storage.ts";
 import { en } from "../locales/en.ts";
+import { zh_CN } from "../locales/zh-CN.ts";
 import {
   DEFAULT_LOCALE,
+  DEFAULT_STARTUP_LOCALE,
   SUPPORTED_LOCALES,
   isSupportedLocale,
   loadLazyLocaleTranslation,
@@ -14,8 +16,11 @@ type Subscriber = (locale: Locale) => void;
 export { SUPPORTED_LOCALES, isSupportedLocale };
 
 class I18nManager {
-  private locale: Locale = DEFAULT_LOCALE;
-  private translations: Partial<Record<Locale, TranslationMap>> = { [DEFAULT_LOCALE]: en };
+  private locale: Locale = DEFAULT_STARTUP_LOCALE;
+  private translations: Partial<Record<Locale, TranslationMap>> = {
+    [DEFAULT_LOCALE]: en,
+    [DEFAULT_STARTUP_LOCALE]: zh_CN,
+  };
   private subscribers: Set<Subscriber> = new Set();
 
   constructor() {
@@ -53,13 +58,16 @@ class I18nManager {
     }
     const language =
       typeof globalThis.navigator?.language === "string" ? globalThis.navigator.language : null;
-    return resolveNavigatorLocale(language ?? "");
+    if (language?.startsWith("zh")) {
+      return resolveNavigatorLocale(language);
+    }
+    return DEFAULT_STARTUP_LOCALE;
   }
 
   private loadLocale() {
     const initialLocale = this.resolveInitialLocale();
-    if (initialLocale === DEFAULT_LOCALE) {
-      this.locale = DEFAULT_LOCALE;
+    if (this.translations[initialLocale]) {
+      this.locale = initialLocale;
       return;
     }
     // Use the normal locale setter so startup locale loading follows the same

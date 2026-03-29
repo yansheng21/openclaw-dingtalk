@@ -7,15 +7,15 @@ source "$SCRIPT_DIR/version-parse.sh"
 verify_installed_cli() {
   local package_name="$1"
   local expected_version="$2"
-  local cli_name="$package_name"
+  local cli_name="${3:-openclaw}"
   local cmd_path=""
   local entry_path=""
   local npm_root=""
   local installed_version=""
 
   cmd_path="$(command -v "$cli_name" || true)"
-  if [[ -z "$cmd_path" && -x "$HOME/.npm-global/bin/$package_name" ]]; then
-    cmd_path="$HOME/.npm-global/bin/$package_name"
+  if [[ -z "$cmd_path" && -x "$HOME/.npm-global/bin/$cli_name" ]]; then
+    cmd_path="$HOME/.npm-global/bin/$cli_name"
   fi
 
   if [[ -z "$cmd_path" ]]; then

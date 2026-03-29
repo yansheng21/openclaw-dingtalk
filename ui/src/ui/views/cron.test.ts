@@ -1,5 +1,6 @@
 import { render } from "lit";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { i18n } from "../../i18n/index.ts";
 import { DEFAULT_CRON_FORM } from "../app-defaults.ts";
 import type { CronJob } from "../types.ts";
 import { renderCron, type CronProps } from "./cron.ts";
@@ -78,6 +79,14 @@ function createProps(overrides: Partial<CronProps> = {}): CronProps {
 }
 
 describe("cron view", () => {
+  beforeEach(async () => {
+    await i18n.setLocale("en");
+  });
+
+  afterEach(async () => {
+    await i18n.setLocale("en");
+  });
+
   it("shows all-job history mode by default", () => {
     const container = document.createElement("div");
     render(renderCron(createProps()), container);
@@ -362,7 +371,7 @@ describe("cron view", () => {
     );
 
     expect(container.textContent).toContain("Delivery");
-    expect(container.textContent).toContain("webhook");
+    expect(container.textContent).toContain("Webhook POST");
     expect(container.textContent).toContain("https://example.invalid/cron");
   });
 
@@ -428,6 +437,31 @@ describe("cron view", () => {
     expect(container.textContent).toContain("Model");
     expect(container.textContent).toContain("Thinking");
     expect(container.textContent).toContain("Best effort delivery");
+  });
+
+  it("renders advanced controls in zh-CN", async () => {
+    await i18n.setLocale("zh-CN");
+
+    const container = document.createElement("div");
+    render(
+      renderCron(
+        createProps({
+          form: {
+            ...DEFAULT_CRON_FORM,
+            scheduleKind: "cron",
+            payloadKind: "agentTurn",
+            deliveryMode: "announce",
+            failureAlertMode: "custom",
+          },
+        }),
+      ),
+      container,
+    );
+
+    const text = container.textContent ?? "";
+    expect(text).toContain("会话键");
+    expect(text).toContain("轻量上下文");
+    expect(text).toContain("失败告警");
   });
 
   it("groups stagger window and unit inside the same stagger row", () => {

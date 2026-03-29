@@ -112,7 +112,7 @@ export function createMemorySearchTool(options: {
     label: "Memory Search",
     name: "memory_search",
     description:
-      "Mandatory recall step: semantically search MEMORY.md + memory/*.md (and optional session transcripts) before answering questions about prior work, decisions, dates, people, preferences, or todos; returns top snippets with path + lines. If response has disabled=true, memory retrieval is unavailable and should be surfaced to the user.",
+      "Mandatory recall step: semantically search MEMORY.md, memory/*.md, synced knowledge files under memory/dingtalk-kb/**/*.md, and optional session transcripts before answering questions about prior work, decisions, dates, people, preferences, todos, manuals, policies, or knowledge-base content; returns top snippets with path + lines. If response has disabled=true, memory retrieval is unavailable and should be surfaced to the user.",
     parameters: MemorySearchSchema,
     execute:
       ({ cfg, agentId }) =>

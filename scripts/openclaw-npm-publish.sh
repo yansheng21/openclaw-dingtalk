@@ -9,6 +9,7 @@ if [[ "${mode}" != "--dry-run" && "${mode}" != "--publish" ]]; then
   exit 2
 fi
 
+package_name="$(node -p "require('./package.json').name")"
 package_version="$(node -p "require('./package.json').version")"
 publish_cmd=(npm publish --access public --provenance)
 release_channel="stable"
@@ -18,6 +19,7 @@ if [[ "${package_version}" == *-beta.* ]]; then
   release_channel="beta"
 fi
 
+echo "Resolved package name: ${package_name}"
 echo "Resolved package version: ${package_version}"
 echo "Resolved release channel: ${release_channel}"
 echo "Publish auth: GitHub OIDC trusted publishing"

@@ -1,63 +1,72 @@
 import { html, nothing } from "lit";
+import { t } from "../../i18n/index.ts";
 import { formatRelativeTimestamp, formatDurationHuman } from "../format.ts";
-import type { WhatsAppStatus } from "../types.ts";
+import type { ChannelAccountSnapshot, WhatsAppStatus } from "../types.ts";
 import { renderChannelConfigSection } from "./channels.config.ts";
+import { formatBooleanLabel } from "./channels.shared.ts";
 import type { ChannelsProps } from "./channels.types.ts";
 
 export function renderWhatsAppCard(params: {
   props: ChannelsProps;
   whatsapp?: WhatsAppStatus;
   accountCountLabel: unknown;
+  selectedAccount?: ChannelAccountSnapshot | null;
 }) {
-  const { props, whatsapp, accountCountLabel } = params;
+  const { props, whatsapp, accountCountLabel, selectedAccount } = params;
+  const summaryConfigured = selectedAccount?.configured ?? whatsapp?.configured;
+  const summaryLinked = selectedAccount?.linked ?? whatsapp?.linked;
+  const summaryRunning = selectedAccount?.running ?? whatsapp?.running;
+  const summaryConnected = selectedAccount?.connected ?? whatsapp?.connected;
+  const summaryLastConnectedAt = selectedAccount?.lastConnectedAt ?? whatsapp?.lastConnectedAt;
+  const summaryLastMessageAt = selectedAccount?.lastInboundAt ?? whatsapp?.lastMessageAt;
+  const summaryLastError = selectedAccount?.lastError ?? whatsapp?.lastError;
 
   return html`
     <div class="card">
       <div class="card-title">WhatsApp</div>
-      <div class="card-sub">Link WhatsApp Web and monitor connection health.</div>
       ${accountCountLabel}
 
       <div class="status-list" style="margin-top: 16px;">
         <div>
-          <span class="label">Configured</span>
-          <span>${whatsapp?.configured ? "Yes" : "No"}</span>
+          <span class="label">${t("channels.labels.configured")}</span>
+          <span>${formatBooleanLabel(summaryConfigured)}</span>
         </div>
         <div>
-          <span class="label">Linked</span>
-          <span>${whatsapp?.linked ? "Yes" : "No"}</span>
+          <span class="label">${t("channels.labels.linked")}</span>
+          <span>${formatBooleanLabel(summaryLinked)}</span>
         </div>
         <div>
-          <span class="label">Running</span>
-          <span>${whatsapp?.running ? "Yes" : "No"}</span>
+          <span class="label">${t("channels.labels.running")}</span>
+          <span>${formatBooleanLabel(summaryRunning)}</span>
         </div>
         <div>
-          <span class="label">Connected</span>
-          <span>${whatsapp?.connected ? "Yes" : "No"}</span>
+          <span class="label">${t("channels.labels.connected")}</span>
+          <span>${formatBooleanLabel(summaryConnected)}</span>
         </div>
         <div>
-          <span class="label">Last connect</span>
+          <span class="label">${t("channels.labels.lastConnect")}</span>
           <span>
-            ${whatsapp?.lastConnectedAt ? formatRelativeTimestamp(whatsapp.lastConnectedAt) : "n/a"}
+            ${summaryLastConnectedAt ? formatRelativeTimestamp(summaryLastConnectedAt) : t("common.na")}
           </span>
         </div>
         <div>
-          <span class="label">Last message</span>
+          <span class="label">${t("channels.labels.lastMessage")}</span>
           <span>
-            ${whatsapp?.lastMessageAt ? formatRelativeTimestamp(whatsapp.lastMessageAt) : "n/a"}
+            ${summaryLastMessageAt ? formatRelativeTimestamp(summaryLastMessageAt) : t("common.na")}
           </span>
         </div>
         <div>
-          <span class="label">Auth age</span>
+          <span class="label">${t("channels.labels.authAge")}</span>
           <span>
-            ${whatsapp?.authAgeMs != null ? formatDurationHuman(whatsapp.authAgeMs) : "n/a"}
+            ${whatsapp?.authAgeMs != null ? formatDurationHuman(whatsapp.authAgeMs) : t("common.na")}
           </span>
         </div>
       </div>
 
       ${
-        whatsapp?.lastError
+        summaryLastError
           ? html`<div class="callout danger" style="margin-top: 12px;">
-            ${whatsapp.lastError}
+            ${summaryLastError}
           </div>`
           : nothing
       }
@@ -84,31 +93,31 @@ export function renderWhatsAppCard(params: {
           ?disabled=${props.whatsappBusy}
           @click=${() => props.onWhatsAppStart(false)}
         >
-          ${props.whatsappBusy ? "Working…" : "Show QR"}
+          ${props.whatsappBusy ? t("channels.actions.working") : t("channels.actions.showQr")}
         </button>
         <button
           class="btn"
           ?disabled=${props.whatsappBusy}
           @click=${() => props.onWhatsAppStart(true)}
         >
-          Relink
+          ${t("channels.actions.relink")}
         </button>
         <button
           class="btn"
           ?disabled=${props.whatsappBusy}
           @click=${() => props.onWhatsAppWait()}
         >
-          Wait for scan
+          ${t("channels.actions.waitForScan")}
         </button>
         <button
           class="btn danger"
           ?disabled=${props.whatsappBusy}
           @click=${() => props.onWhatsAppLogout()}
         >
-          Logout
+          ${t("channels.actions.logout")}
         </button>
         <button class="btn" @click=${() => props.onRefresh(true)}>
-          Refresh
+          ${t("channels.actions.refresh")}
         </button>
       </div>
 

@@ -1,0 +1,106 @@
+{
+  "id": "dingtalk-enterprise",
+  "channels": ["dingtalk-enterprise"],
+  "name": "DingTalk Enterprise",
+  "description": "Enterprise DingTalk connector for DingClaw.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "default": true
+      },
+      "name": {
+        "type": "string"
+      },
+      "defaultAccount": {
+        "type": "string"
+      },
+      "appKey": {
+        "type": "string"
+      },
+      "appSecret": {
+        "type": "string"
+      },
+      "clientId": {
+        "type": "string"
+      },
+      "clientSecret": {
+        "type": "string"
+      },
+      "agentId": {
+        "type": "string"
+      },
+      "robotCode": {
+        "type": "string"
+      },
+      "tenantId": {
+        "type": "string"
+      },
+      "callbackBaseUrl": {
+        "type": "string"
+      },
+      "messageCallbackPath": {
+        "type": "string",
+        "default": "/webhooks/dingtalk/messages"
+      },
+      "cardCallbackPath": {
+        "type": "string",
+        "default": "/webhooks/dingtalk/cards/actions"
+      },
+      "oaCallbackPath": {
+        "type": "string",
+        "default": "/webhooks/dingtalk/oa/events"
+      },
+      "accounts": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "name": {
+              "type": "string"
+            },
+            "appKey": {
+              "type": "string"
+            },
+            "appSecret": {
+              "type": "string"
+            },
+            "clientId": {
+              "type": "string"
+            },
+            "clientSecret": {
+              "type": "string"
+            },
+            "agentId": {
+              "type": "string"
+            },
+            "robotCode": {
+              "type": "string"
+            },
+            "tenantId": {
+              "type": "string"
+            },
+            "callbackBaseUrl": {
+              "type": "string"
+            },
+            "messageCallbackPath": {
+              "type": "string"
+            },
+            "cardCallbackPath": {
+              "type": "string"
+            },
+            "oaCallbackPath": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

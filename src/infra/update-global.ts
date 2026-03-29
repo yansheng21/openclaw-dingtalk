@@ -2,6 +2,11 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { pathExists } from "../utils.js";
+import {
+  CORE_PACKAGE_NAME_ALIASES,
+  PRIMARY_MAIN_PACKAGE_SPEC,
+  PRIMARY_PACKAGE_NAME,
+} from "./core-package.js";
 import { applyPathPrepend } from "./path-prepend.js";
 
 export type GlobalInstallManager = "npm" | "pnpm" | "bun";
@@ -11,10 +16,9 @@ export type CommandRunner = (
   options: { timeoutMs: number; cwd?: string; env?: NodeJS.ProcessEnv },
 ) => Promise<{ stdout: string; stderr: string; code: number | null }>;
 
-const PRIMARY_PACKAGE_NAME = "openclaw";
-const ALL_PACKAGE_NAMES = [PRIMARY_PACKAGE_NAME] as const;
+const ALL_PACKAGE_NAMES = CORE_PACKAGE_NAME_ALIASES;
 const GLOBAL_RENAME_PREFIX = ".";
-export const OPENCLAW_MAIN_PACKAGE_SPEC = "github:openclaw/openclaw#main";
+export const OPENCLAW_MAIN_PACKAGE_SPEC = PRIMARY_MAIN_PACKAGE_SPEC;
 const NPM_GLOBAL_INSTALL_QUIET_FLAGS = ["--no-fund", "--no-audit", "--loglevel=error"] as const;
 const NPM_GLOBAL_INSTALL_OMIT_OPTIONAL_FLAGS = [
   "--omit=optional",
@@ -162,6 +166,12 @@ export async function resolveGlobalPackageRoot(
   const root = await resolveGlobalRoot(manager, runCommand, timeoutMs);
   if (!root) {
     return null;
+  }
+  for (const name of ALL_PACKAGE_NAMES) {
+    const candidate = path.join(root, name);
+    if (await pathExists(candidate)) {
+      return candidate;
+    }
   }
   return path.join(root, PRIMARY_PACKAGE_NAME);
 }

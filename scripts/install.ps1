@@ -1,11 +1,11 @@
 # OpenClaw Installer for Windows (PowerShell)
-# Usage: iwr -useb https://openclaw.ai/install.ps1 | iex
-# Or: & ([scriptblock]::Create((iwr -useb https://openclaw.ai/install.ps1))) -NoOnboard
+# Usage: iwr -useb https://raw.githubusercontent.com/yansheng21/openclaw-dingtalk/main/scripts/install.ps1 | iex
+# Or: & ([scriptblock]::Create((iwr -useb https://raw.githubusercontent.com/yansheng21/openclaw-dingtalk/main/scripts/install.ps1))) -NoOnboard
 
 param(
     [string]$InstallMethod = "npm",
     [string]$Tag = "latest",
-    [string]$GitDir = "$env:USERPROFILE\openclaw",
+    [string]$GitDir = "$env:USERPROFILE\openclaw-dingtalk",
     [switch]$NoOnboard,
     [switch]$NoGitUpdate,
     [switch]$DryRun
@@ -224,7 +224,7 @@ function Install-OpenClawGit {
     
     if (!(Test-Path $RepoDir)) {
         Write-Host "  Cloning repository..." -Level info
-        git clone https://github.com/openclaw/openclaw.git $RepoDir 2>&1
+        git clone https://github.com/yansheng21/openclaw-dingtalk.git $RepoDir 2>&1
     } elseif ($Update) {
         Write-Host "  Updating repository..." -Level info
         git -C $RepoDir pull --rebase 2>&1
@@ -252,9 +252,10 @@ function Install-OpenClawGit {
     
     @"
 @echo off
-node "%~dp0..\openclaw\dist\entry.js" %*
+node "$RepoDir\dist\entry.js" %*
 "@ | Out-File -FilePath "$wrapperDir\openclaw.cmd" -Encoding ASCII -Force
-    
+    Copy-Item "$wrapperDir\openclaw.cmd" "$wrapperDir\dingclaw.cmd" -Force
+
     Write-Host "OpenClaw installed" -Level success
     return $true
 }
@@ -276,15 +277,15 @@ function Resolve-PackageInstallSpec {
 
     $trimmed = $Target.Trim()
     if ([string]::IsNullOrWhiteSpace($trimmed)) {
-        return "openclaw@latest"
+        return "openclaw-dingtalk@latest"
     }
     if ($trimmed.ToLowerInvariant() -eq "main") {
-        return "github:openclaw/openclaw#main"
+        return "github:yansheng21/openclaw-dingtalk#main"
     }
     if (Test-ExplicitPackageInstallSpec -Target $trimmed) {
         return $trimmed
     }
-    return "openclaw@$trimmed"
+    return "openclaw-dingtalk@$trimmed"
 }
 
 function Add-ToPath {

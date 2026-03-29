@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-INSTALL_URL="${OPENCLAW_INSTALL_URL:-https://openclaw.bot/install.sh}"
-DEFAULT_PACKAGE="openclaw"
+INSTALL_URL="${OPENCLAW_INSTALL_URL:-https://raw.githubusercontent.com/yansheng21/openclaw-dingtalk/main/scripts/install.sh}"
+DEFAULT_PACKAGE="openclaw-dingtalk"
 PACKAGE_NAME="${OPENCLAW_INSTALL_PACKAGE:-$DEFAULT_PACKAGE}"
+CLI_NAME="${OPENCLAW_INSTALL_CLI_BIN:-openclaw}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # shellcheck source=../install-sh-common/cli-verify.sh
@@ -44,6 +45,6 @@ else
   LATEST_VERSION="$(npm view "$PACKAGE_NAME" version)"
 fi
 echo "==> Verify CLI installed"
-verify_installed_cli "$PACKAGE_NAME" "$LATEST_VERSION"
+verify_installed_cli "$PACKAGE_NAME" "$LATEST_VERSION" "$CLI_NAME"
 
 echo "OK"

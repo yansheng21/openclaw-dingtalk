@@ -1,7 +1,8 @@
 /* @vitest-environment jsdom */
 
 import { render } from "lit";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { i18n } from "../../i18n/index.ts";
 import type { SessionsListResult } from "../types.ts";
 import { renderSessions, type SessionsProps } from "./sessions.ts";
 
@@ -57,6 +58,14 @@ function buildProps(result: SessionsListResult): SessionsProps {
 }
 
 describe("sessions view", () => {
+  beforeEach(async () => {
+    await i18n.setLocale("en");
+  });
+
+  afterEach(async () => {
+    await i18n.setLocale("en");
+  });
+
   it("renders verbose=full without falling back to inherit", async () => {
     const container = document.createElement("div");
     render(
@@ -164,5 +173,29 @@ describe("sessions view", () => {
     expect(onDeselectPage).toHaveBeenCalledWith(["page-0"]);
     expect(onDeselectAll).not.toHaveBeenCalled();
     expect(onSelectPage).not.toHaveBeenCalled();
+  });
+
+  it("renders localized labels in zh-CN", async () => {
+    await i18n.setLocale("zh-CN");
+
+    const container = document.createElement("div");
+    render(
+      renderSessions(
+        buildProps(
+          buildResult({
+            key: "agent:main:main",
+            kind: "direct",
+            updatedAt: Date.now(),
+          }),
+        ),
+      ),
+      container,
+    );
+    await Promise.resolve();
+
+    const text = container.textContent ?? "";
+    expect(text).toContain("会话");
+    expect(text).toContain("私聊");
+    expect(text).toContain("快速");
   });
 });

@@ -82,6 +82,14 @@ const config = {
       entry: ["index.html!", "src/main.ts!", "vite.config.ts!", "vitest*.ts!"],
       project: ["src/**/*.{ts,tsx}!"],
     },
+    "apps/desktop-shell": {
+      entry: ["src/main.js!", "src/preload.js!", "src/renderer/renderer.js!", "test/*.test.js!"],
+      project: ["src/**/*.js!", "test/**/*.js!"],
+    },
+    "apps/admin-console": {
+      entry: ["src/index.ts!"],
+      project: ["src/**/*.ts!"],
+    },
     "packages/*": {
       entry: ["index.js!", "scripts/postinstall.js!"],
       project: ["index.js!", "scripts/**/*.js!"],

@@ -1,7 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import { i18n } from "../i18n/index.ts";
 import { formatRelativeTimestamp, stripThinkingTags } from "./format.ts";
 
 describe("formatAgo", () => {
+  beforeEach(async () => {
+    await i18n.setLocale("en");
+  });
+
   it("returns 'in <1m' for timestamps less than 60s in the future", () => {
     expect(formatRelativeTimestamp(Date.now() + 30_000)).toBe("in <1m");
   });
@@ -29,6 +34,22 @@ describe("formatAgo", () => {
   it("returns 'n/a' for null/undefined", () => {
     expect(formatRelativeTimestamp(null)).toBe("n/a");
     expect(formatRelativeTimestamp(undefined)).toBe("n/a");
+  });
+});
+
+describe("formatAgo zh-CN", () => {
+  beforeEach(async () => {
+    await i18n.setLocale("zh-CN");
+  });
+
+  it("renders future timestamps in simplified Chinese", () => {
+    expect(formatRelativeTimestamp(Date.now() + 30_000)).toBe("不到 1 分钟后");
+    expect(formatRelativeTimestamp(Date.now() + 5 * 60_000)).toContain("5分钟后");
+  });
+
+  it("renders past timestamps in simplified Chinese", () => {
+    expect(formatRelativeTimestamp(Date.now() - 10_000)).toBe("刚刚");
+    expect(formatRelativeTimestamp(Date.now() - 5 * 60_000)).toContain("5分钟前");
   });
 });
 

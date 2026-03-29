@@ -1,10 +1,11 @@
 # @dingclaw/admin-console
 
-Chinese admin console for DingClaw enterprise operations.
+DingClaw 的中文管理端。
 
-Planned scope:
+首期职责：
 
-- organization and identity management
-- agent and model routing management
-- policy and approval management
-- audit search and export
+- 工作台
+- 组织与身份管理
+- 智能体与模型路由管理
+- 策略与审批管理
+- 审计检索与导出

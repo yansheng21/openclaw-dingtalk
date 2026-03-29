@@ -89,11 +89,40 @@ docs/
 pnpm install
 ```
 
+CLI 本地开发：
+
+```bash
+pnpm openclaw --version
+```
+
+全局安装发布包：
+
+```bash
+npm install -g openclaw-dingtalk
+```
+
+安装后可使用两个命令入口：
+
+- `openclaw`
+- `dingclaw`
+
+一键安装脚本：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/yansheng21/openclaw-dingtalk/main/scripts/install.sh | bash
+```
+
+CLI 优先安装：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/yansheng21/openclaw-dingtalk/main/scripts/install-cli.sh | bash
+```
+
 后续执行顺序建议：
 
 1. 先完成工作区依赖安装与构建校验
 2. 再落第一批企业基础包：`shared-config`、`database`、`identity-service`
-3. 然后补 `dingtalk-enterprise` 接入与 `admin-console`
+3. 然后补 `dingtalk-enterprise` 接入并正式拆分 `desktop-shell` / `admin-console`
 4. 最后接 OA、审批、浏览器能力和审计闭环
 
 ## 远端策略
@@ -110,3 +139,24 @@ pnpm install
 - 产品级蓝图文档
 
 接下来的工作重点是把蓝图逐步变成可运行的控制面、运行时和钉钉扩展。
+
+## 发布说明
+
+- npm 包名：`openclaw-dingtalk`
+- GitHub 仓库：`https://github.com/yansheng21/openclaw-dingtalk`
+- 推荐发布标签：`vYYYY.M.D` 或 `vYYYY.M.D-beta.N`
+
+当前仓库已补齐两条发布链路：
+
+- 推送版本标签后，会执行 npm 发布预检查并自动创建 GitHub Release
+- 通过 GitHub Actions 手动触发 `DingClaw NPM Release`，可将指定 tag 发布到 npm
+
+GitHub Release 会附带这些资产：
+
+- `npm pack` 生成的 tarball
+- `install.sh`
+- `install-cli.sh`
+- `install.ps1`
+- `SHA256SUMS.txt`
+
+如果要真正发布到 npm，还需要在该仓库对应的 npm package 上开启 trusted publishing，并把 GitHub 仓库绑定到包 `openclaw-dingtalk`。

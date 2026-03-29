@@ -1,0 +1,10 @@
+{
+  "id": "internal-api-tools",
+  "name": "Internal API Tools",
+  "description": "Enterprise internal API toolset for DingClaw.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

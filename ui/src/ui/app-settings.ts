@@ -49,12 +49,13 @@ type SettingsHost = {
   connected: boolean;
   chatHasAutoScrolled: boolean;
   logsAtBottom: boolean;
+  logsCursor?: number | null;
   eventLog: unknown[];
   eventLogBuffer: unknown[];
   basePath: string;
   agentsList?: AgentsListResult | null;
   agentsSelectedId?: string | null;
-  agentsPanel?: "overview" | "files" | "tools" | "skills" | "channels" | "cron";
+  agentsPanel?: "overview" | "bindings" | "files" | "tools" | "skills" | "channels" | "cron";
   pendingGatewayUrl?: string | null;
   systemThemeCleanup?: (() => void) | null;
   pendingGatewayToken?: string | null;
@@ -233,7 +234,23 @@ export async function refreshActiveTab(host: SettingsHost) {
     await loadCron(host);
   }
   if (host.tab === "skills") {
+    await loadAgents(host as unknown as OpenClawApp);
     await loadSkills(host as unknown as OpenClawApp);
+    await loadConfig(host as unknown as OpenClawApp);
+    const agentId =
+      host.agentsSelectedId ?? host.agentsList?.defaultId ?? host.agentsList?.agents?.[0]?.id;
+    if (agentId) {
+      void loadAgentSkills(host as unknown as OpenClawApp, agentId);
+    }
+  }
+  if (host.tab === "knowledge") {
+    await loadAgents(host as unknown as OpenClawApp);
+    await loadConfig(host as unknown as OpenClawApp);
+    const agentId =
+      host.agentsSelectedId ?? host.agentsList?.defaultId ?? host.agentsList?.agents?.[0]?.id;
+    if (agentId) {
+      void loadAgentIdentity(host as unknown as OpenClawApp, agentId);
+    }
   }
   if (host.tab === "agents") {
     await loadAgents(host as unknown as OpenClawApp);
@@ -248,6 +265,9 @@ export async function refreshActiveTab(host: SettingsHost) {
       void loadAgentIdentity(host as unknown as OpenClawApp, agentId);
       if (host.agentsPanel === "skills") {
         void loadAgentSkills(host as unknown as OpenClawApp, agentId);
+      }
+      if (host.agentsPanel === "bindings") {
+        void loadChannels(host as unknown as OpenClawApp, false);
       }
       if (host.agentsPanel === "channels") {
         void loadChannels(host as unknown as OpenClawApp, false);
@@ -264,6 +284,7 @@ export async function refreshActiveTab(host: SettingsHost) {
     await loadExecApprovals(host as unknown as OpenClawApp);
   }
   if (host.tab === "chat") {
+    await loadAgents(host as unknown as OpenClawApp);
     await refreshChat(host as unknown as Parameters<typeof refreshChat>[0]);
     scheduleChatScroll(
       host as unknown as Parameters<typeof scheduleChatScroll>[0],
@@ -436,7 +457,7 @@ function applyTabSelection(
   if (next === "chat") {
     host.chatHasAutoScrolled = false;
   }
-  if (next === "logs") {
+  if (next === "logs" || next === "channels") {
     startLogsPolling(host as unknown as Parameters<typeof startLogsPolling>[0]);
   } else {
     stopLogsPolling(host as unknown as Parameters<typeof stopLogsPolling>[0]);
@@ -639,6 +660,7 @@ export async function loadChannelsTab(host: SettingsHost) {
     loadChannels(host as unknown as OpenClawApp, true),
     loadConfigSchema(host as unknown as OpenClawApp),
     loadConfig(host as unknown as OpenClawApp),
+    loadLogs(host as unknown as OpenClawApp, { reset: host.logsCursor == null }),
   ]);
 }
 

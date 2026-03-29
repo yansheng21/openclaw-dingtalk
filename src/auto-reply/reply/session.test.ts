@@ -1487,7 +1487,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
 
   it("archives the old session store entry on /new", async () => {
     const storePath = await createStorePath("openclaw-archive-old-");
-    const sessionKey = "agent:main:telegram:dm:user-archive";
+    const sessionKey = "agent:main:telegram:direct:user-archive";
     const existingSessionId = "existing-session-archive";
     await seedSessionStoreWithOverrides({
       storePath,
@@ -1495,8 +1495,11 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
       sessionId: existingSessionId,
       overrides: { verboseLevel: "on" },
     });
-    const sessionUtils = await import("../../gateway/session-utils.fs.js");
-    const archiveSpy = vi.spyOn(sessionUtils, "archiveSessionTranscripts");
+    await fs.writeFile(
+      path.join(path.dirname(storePath), `${existingSessionId}.jsonl`),
+      '{"type":"session"}\n',
+      "utf-8",
+    );
 
     const cfg = {
       session: { store: storePath, idleMinutes: 999 },
@@ -1520,14 +1523,10 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
 
     expect(result.isNewSession).toBe(true);
     expect(result.resetTriggered).toBe(true);
-    expect(archiveSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        sessionId: existingSessionId,
-        storePath,
-        reason: "reset",
-      }),
+    const sessionDirEntries = await fs.readdir(path.dirname(storePath));
+    expect(sessionDirEntries.some((name) => name.startsWith(`${existingSessionId}.jsonl.reset.`))).toBe(
+      true,
     );
-    archiveSpy.mockRestore();
   });
 
   it("archives the old session transcript on daily/scheduled reset (stale session)", async () => {
@@ -1539,7 +1538,7 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
       // Simulate: it is 5am, session was last active at 3am (before 4am daily boundary)
       vi.setSystemTime(new Date(2026, 0, 18, 5, 0, 0));
       const storePath = await createStorePath("openclaw-stale-archive-");
-      const sessionKey = "agent:main:telegram:dm:archive-stale-user";
+      const sessionKey = "agent:main:telegram:direct:archive-stale-user";
       const existingSessionId = "stale-session-to-be-archived";
 
       await writeSessionStoreFast(storePath, {
@@ -1548,9 +1547,11 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
           updatedAt: new Date(2026, 0, 18, 3, 0, 0).getTime(),
         },
       });
-
-      const sessionUtils = await import("../../gateway/session-utils.fs.js");
-      const archiveSpy = vi.spyOn(sessionUtils, "archiveSessionTranscripts");
+      await fs.writeFile(
+        path.join(path.dirname(storePath), `${existingSessionId}.jsonl`),
+        '{"type":"session"}\n',
+        "utf-8",
+      );
 
       const cfg = { session: { store: storePath } } as OpenClawConfig;
       const result = await initSessionState({
@@ -1572,14 +1573,10 @@ describe("initSessionState preserves behavior overrides across /new and /reset",
       expect(result.isNewSession).toBe(true);
       expect(result.resetTriggered).toBe(false);
       expect(result.sessionId).not.toBe(existingSessionId);
-      expect(archiveSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sessionId: existingSessionId,
-          storePath,
-          reason: "reset",
-        }),
+      const sessionDirEntries = await fs.readdir(path.dirname(storePath));
+      expect(sessionDirEntries.some((name) => name.startsWith(`${existingSessionId}.jsonl.reset.`))).toBe(
+        true,
       );
-      archiveSpy.mockRestore();
     } finally {
       vi.useRealTimers();
     }

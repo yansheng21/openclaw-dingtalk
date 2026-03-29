@@ -1,0 +1,15 @@
+{
+  "name": "@openclaw/dingtalk-connector",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "index.js",
+  "openclaw": {
+    "extensions": [
+      "./index.js"
+    ],
+    "channels": [
+      "dingtalk-connector"
+    ]
+  }
+}

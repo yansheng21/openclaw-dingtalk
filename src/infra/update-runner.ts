@@ -28,6 +28,7 @@ import {
   globalInstallFallbackArgs,
   resolveGlobalInstallSpec,
 } from "./update-global.js";
+import { CORE_PACKAGE_NAME_ALIASES, CORE_PACKAGE_NAMES, PRIMARY_PACKAGE_NAME } from "./core-package.js";
 
 export type UpdateStepResult = {
   name: string;
@@ -89,8 +90,7 @@ const DEFAULT_TIMEOUT_MS = 20 * 60_000;
 const MAX_LOG_CHARS = 8000;
 const PREFLIGHT_MAX_COMMITS = 10;
 const START_DIRS = ["cwd", "argv1", "process"];
-const DEFAULT_PACKAGE_NAME = "openclaw";
-const CORE_PACKAGE_NAMES = new Set([DEFAULT_PACKAGE_NAME]);
+const DEFAULT_PACKAGE_NAME = PRIMARY_PACKAGE_NAME;
 
 function normalizeDir(value?: string | null) {
   if (!value) {
@@ -407,7 +407,7 @@ function managerInstallArgs(manager: BuildManager, opts?: { compatFallback?: boo
 }
 
 function normalizeTag(tag?: string) {
-  return normalizePackageTagInput(tag, ["openclaw", DEFAULT_PACKAGE_NAME]) ?? "latest";
+  return normalizePackageTagInput(tag, CORE_PACKAGE_NAME_ALIASES) ?? "latest";
 }
 
 export async function runGatewayUpdate(opts: UpdateRunnerOptions = {}): Promise<UpdateRunResult> {

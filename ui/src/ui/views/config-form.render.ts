@@ -1,8 +1,10 @@
 import { html, nothing } from "lit";
+import { t } from "../../i18n/index.ts";
 import { icons } from "../icons.ts";
 import type { ConfigUiHints } from "../types.ts";
+import { localizeConfigHelp, localizeConfigLabel } from "./config-form.i18n.ts";
 import { matchesNodeSearch, parseConfigSearchQuery, renderNode } from "./config-form.node.ts";
-import { hintForPath, humanize, schemaType, type JsonSchema } from "./config-form.shared.ts";
+import { hintForPath, humanize, pathKey, schemaType, type JsonSchema } from "./config-form.shared.ts";
 
 export type ConfigFormProps = {
   schema: JsonSchema | null;
@@ -239,43 +241,412 @@ const sectionIcons = {
   `,
 };
 
-// Section metadata
-export const SECTION_META: Record<string, { label: string; description: string }> = {
+const SECTION_META_KEYS: Record<string, { labelKey: string; descriptionKey: string }> = {
   env: {
-    label: "Environment Variables",
-    description: "Environment variables passed to the gateway process",
+    labelKey: "configPage.sections.env.label",
+    descriptionKey: "configPage.sections.env.description",
   },
-  update: { label: "Updates", description: "Auto-update settings and release channel" },
-  agents: { label: "Agents", description: "Agent configurations, models, and identities" },
-  auth: { label: "Authentication", description: "API keys and authentication profiles" },
+  update: {
+    labelKey: "configPage.sections.update.label",
+    descriptionKey: "configPage.sections.update.description",
+  },
+  agents: {
+    labelKey: "configPage.sections.agents.label",
+    descriptionKey: "configPage.sections.agents.description",
+  },
+  auth: {
+    labelKey: "configPage.sections.auth.label",
+    descriptionKey: "configPage.sections.auth.description",
+  },
   channels: {
-    label: "Channels",
-    description: "Messaging channels (Telegram, Discord, Slack, etc.)",
+    labelKey: "configPage.sections.channels.label",
+    descriptionKey: "configPage.sections.channels.description",
   },
-  messages: { label: "Messages", description: "Message handling and routing settings" },
-  commands: { label: "Commands", description: "Custom slash commands" },
-  hooks: { label: "Hooks", description: "Webhooks and event hooks" },
-  skills: { label: "Skills", description: "Skill packs and capabilities" },
-  tools: { label: "Tools", description: "Tool configurations (browser, search, etc.)" },
-  gateway: { label: "Gateway", description: "Gateway server settings (port, auth, binding)" },
-  wizard: { label: "Setup Wizard", description: "Setup wizard state and history" },
-  // Additional sections
-  meta: { label: "Metadata", description: "Gateway metadata and version information" },
-  logging: { label: "Logging", description: "Log levels and output configuration" },
-  browser: { label: "Browser", description: "Browser automation settings" },
-  ui: { label: "UI", description: "User interface preferences" },
-  models: { label: "Models", description: "AI model configurations and providers" },
-  bindings: { label: "Bindings", description: "Key bindings and shortcuts" },
-  broadcast: { label: "Broadcast", description: "Broadcast and notification settings" },
-  audio: { label: "Audio", description: "Audio input/output settings" },
-  session: { label: "Session", description: "Session management and persistence" },
-  cron: { label: "Cron", description: "Scheduled tasks and automation" },
-  web: { label: "Web", description: "Web server and API settings" },
-  discovery: { label: "Discovery", description: "Service discovery and networking" },
-  canvasHost: { label: "Canvas Host", description: "Canvas rendering and display" },
-  talk: { label: "Talk", description: "Voice and speech settings" },
-  plugins: { label: "Plugins", description: "Plugin management and extensions" },
+  messages: {
+    labelKey: "configPage.sections.messages.label",
+    descriptionKey: "configPage.sections.messages.description",
+  },
+  commands: {
+    labelKey: "configPage.sections.commands.label",
+    descriptionKey: "configPage.sections.commands.description",
+  },
+  hooks: {
+    labelKey: "configPage.sections.hooks.label",
+    descriptionKey: "configPage.sections.hooks.description",
+  },
+  skills: {
+    labelKey: "configPage.sections.skills.label",
+    descriptionKey: "configPage.sections.skills.description",
+  },
+  tools: {
+    labelKey: "configPage.sections.tools.label",
+    descriptionKey: "configPage.sections.tools.description",
+  },
+  gateway: {
+    labelKey: "configPage.sections.gateway.label",
+    descriptionKey: "configPage.sections.gateway.description",
+  },
+  wizard: {
+    labelKey: "configPage.sections.wizard.label",
+    descriptionKey: "configPage.sections.wizard.description",
+  },
+  meta: {
+    labelKey: "configPage.sections.meta.label",
+    descriptionKey: "configPage.sections.meta.description",
+  },
+  logging: {
+    labelKey: "configPage.sections.logging.label",
+    descriptionKey: "configPage.sections.logging.description",
+  },
+  browser: {
+    labelKey: "configPage.sections.browser.label",
+    descriptionKey: "configPage.sections.browser.description",
+  },
+  ui: {
+    labelKey: "configPage.sections.ui.label",
+    descriptionKey: "configPage.sections.ui.description",
+  },
+  models: {
+    labelKey: "configPage.sections.models.label",
+    descriptionKey: "configPage.sections.models.description",
+  },
+  bindings: {
+    labelKey: "configPage.sections.bindings.label",
+    descriptionKey: "configPage.sections.bindings.description",
+  },
+  broadcast: {
+    labelKey: "configPage.sections.broadcast.label",
+    descriptionKey: "configPage.sections.broadcast.description",
+  },
+  audio: {
+    labelKey: "configPage.sections.audio.label",
+    descriptionKey: "configPage.sections.audio.description",
+  },
+  session: {
+    labelKey: "configPage.sections.session.label",
+    descriptionKey: "configPage.sections.session.description",
+  },
+  cron: {
+    labelKey: "configPage.sections.cron.label",
+    descriptionKey: "configPage.sections.cron.description",
+  },
+  web: {
+    labelKey: "configPage.sections.web.label",
+    descriptionKey: "configPage.sections.web.description",
+  },
+  discovery: {
+    labelKey: "configPage.sections.discovery.label",
+    descriptionKey: "configPage.sections.discovery.description",
+  },
+  canvasHost: {
+    labelKey: "configPage.sections.canvasHost.label",
+    descriptionKey: "configPage.sections.canvasHost.description",
+  },
+  talk: {
+    labelKey: "configPage.sections.talk.label",
+    descriptionKey: "configPage.sections.talk.description",
+  },
+  plugins: {
+    labelKey: "configPage.sections.plugins.label",
+    descriptionKey: "configPage.sections.plugins.description",
+  },
+  memory: {
+    labelKey: "configPage.sections.memory.label",
+    descriptionKey: "configPage.sections.memory.description",
+  },
+  approvals: {
+    labelKey: "configPage.sections.approvals.label",
+    descriptionKey: "configPage.sections.approvals.description",
+  },
+  nodeHost: {
+    labelKey: "configPage.sections.nodeHost.label",
+    descriptionKey: "configPage.sections.nodeHost.description",
+  },
+  media: {
+    labelKey: "configPage.sections.media.label",
+    descriptionKey: "configPage.sections.media.description",
+  },
+  appearancePanel: {
+    labelKey: "configPage.sections.appearancePanel.label",
+    descriptionKey: "configPage.sections.appearancePanel.description",
+  },
 };
+
+type SectionGroupMeta = {
+  key: string;
+  title: string;
+  description: string;
+};
+
+const SECTION_GROUP_META: Record<string, Array<SectionGroupMeta>> = {
+  gateway: [
+    {
+      key: "access",
+      title: t("configForm.groups.gateway.access.title"),
+      description: t("configForm.groups.gateway.access.description"),
+    },
+    {
+      key: "runtime",
+      title: t("configForm.groups.gateway.runtime.title"),
+      description: t("configForm.groups.gateway.runtime.description"),
+    },
+  ],
+  channels: [
+    {
+      key: "defaults",
+      title: t("configForm.groups.channels.defaults.title"),
+      description: t("configForm.groups.channels.defaults.description"),
+    },
+    {
+      key: "integrations",
+      title: t("configForm.groups.channels.integrations.title"),
+      description: t("configForm.groups.channels.integrations.description"),
+    },
+  ],
+  session: [
+    {
+      key: "continuity",
+      title: t("configForm.groups.session.continuity.title"),
+      description: t("configForm.groups.session.continuity.description"),
+    },
+    {
+      key: "delivery",
+      title: t("configForm.groups.session.delivery.title"),
+      description: t("configForm.groups.session.delivery.description"),
+    },
+  ],
+  tools: [
+    {
+      key: "policy",
+      title: t("configForm.groups.tools.policy.title"),
+      description: t("configForm.groups.tools.policy.description"),
+    },
+    {
+      key: "execution",
+      title: t("configForm.groups.tools.execution.title"),
+      description: t("configForm.groups.tools.execution.description"),
+    },
+  ],
+};
+
+const SECTION_GROUP_RULES: Record<string, Record<string, string>> = {
+  gateway: {
+    controlUi: "access",
+    auth: "access",
+    trustedProxies: "access",
+    tailscale: "access",
+    remote: "access",
+    reload: "runtime",
+    tls: "runtime",
+    http: "runtime",
+    push: "runtime",
+    bind: "runtime",
+    customBindHost: "runtime",
+    port: "runtime",
+    mode: "runtime",
+  },
+  channels: {
+    defaults: "defaults",
+    modelByChannel: "defaults",
+  },
+  session: {
+    identityLinks: "continuity",
+    reset: "continuity",
+    resetByType: "continuity",
+    resetByChannel: "continuity",
+    store: "delivery",
+    sendPolicy: "delivery",
+    agentToAgent: "delivery",
+  },
+  tools: {
+    allow: "policy",
+    deny: "policy",
+    profile: "policy",
+    alsoAllow: "policy",
+    byProvider: "policy",
+    agentToAgent: "policy",
+    elevated: "policy",
+    subagents: "policy",
+    sandbox: "policy",
+    exec: "execution",
+    web: "execution",
+    loopDetection: "execution",
+    fs: "execution",
+    sessions: "execution",
+  },
+};
+
+function groupSectionEntries(sectionKey: string, entries: Array<[string, JsonSchema]>) {
+  const metaList = SECTION_GROUP_META[sectionKey];
+  const rules = SECTION_GROUP_RULES[sectionKey];
+  if (!metaList || !rules) {
+    return null;
+  }
+  const bucketMap = new Map<string, Array<[string, JsonSchema]>>();
+  const rest: Array<[string, JsonSchema]> = [];
+  for (const entry of entries) {
+    const bucket = rules[entry[0]];
+    if (!bucket) {
+      rest.push(entry);
+      continue;
+    }
+    const list = bucketMap.get(bucket) ?? [];
+    list.push(entry);
+    bucketMap.set(bucket, list);
+  }
+  const groups = metaList
+    .map((meta) => ({ ...meta, entries: bucketMap.get(meta.key) ?? [] }))
+    .filter((group) => group.entries.length > 0);
+  if (groups.length === 0) {
+    return null;
+  }
+  return { groups, rest };
+}
+
+function renderSectionNode(params: {
+  key: string;
+  node: JsonSchema;
+  value: unknown;
+  props: ConfigFormProps;
+  unsupported: Set<string>;
+  searchCriteria: ReturnType<typeof parseConfigSearchQuery>;
+  showHeader?: boolean;
+}) {
+  const { key, node, value, props, unsupported, searchCriteria } = params;
+  const grouped =
+    schemaType(node) === "object" && node.properties
+      ? groupSectionEntries(key, Object.entries(node.properties))
+      : null;
+  const meta = getConfigSectionMeta(key, node);
+  const showHeader = params.showHeader ?? true;
+
+  const defaultContent = renderNode({
+    schema: node,
+    value,
+    path: [key],
+    hints: props.uiHints,
+    unsupported,
+    disabled: props.disabled ?? false,
+    showLabel: false,
+    searchCriteria,
+    revealSensitive: props.revealSensitive ?? false,
+    isSensitivePathRevealed: props.isSensitivePathRevealed,
+    onToggleSensitivePath: props.onToggleSensitivePath,
+    onPatch: props.onPatch,
+  });
+
+  const content =
+    grouped && grouped.groups.length > 0
+      ? html`
+          <div class="config-section-groups">
+            ${grouped.groups.map(
+              (group) => html`
+                <section class="config-subsection-card">
+                  <div class="config-subsection-card__header">
+                    <h4 class="config-subsection-card__title">${group.title}</h4>
+                    <p class="config-subsection-card__desc">${group.description}</p>
+                  </div>
+                  <div class="config-subsection-card__content">
+                    ${group.entries.map(([propKey, propNode]) =>
+                      renderNode({
+                        schema: propNode,
+                        value:
+                          value && typeof value === "object"
+                            ? (value as Record<string, unknown>)[propKey]
+                            : undefined,
+                        path: [key, propKey],
+                        hints: props.uiHints,
+                        unsupported,
+                        disabled: props.disabled ?? false,
+                        searchCriteria,
+                        revealSensitive: props.revealSensitive ?? false,
+                        isSensitivePathRevealed: props.isSensitivePathRevealed,
+                        onToggleSensitivePath: props.onToggleSensitivePath,
+                        onPatch: props.onPatch,
+                      }),
+                    )}
+                  </div>
+                </section>
+              `,
+            )}
+            ${
+              grouped.rest.length > 0
+                ? html`
+                    <section class="config-subsection-card config-subsection-card--secondary">
+                      <div class="config-subsection-card__header">
+                        <h4 class="config-subsection-card__title">${t("configForm.groups.other.title")}</h4>
+                        <p class="config-subsection-card__desc">${t("configForm.groups.other.description")}</p>
+                      </div>
+                      <div class="config-subsection-card__content">
+                        ${grouped.rest.map(([propKey, propNode]) =>
+                          renderNode({
+                            schema: propNode,
+                            value:
+                              value && typeof value === "object"
+                                ? (value as Record<string, unknown>)[propKey]
+                                : undefined,
+                            path: [key, propKey],
+                            hints: props.uiHints,
+                            unsupported,
+                            disabled: props.disabled ?? false,
+                            searchCriteria,
+                            revealSensitive: props.revealSensitive ?? false,
+                            isSensitivePathRevealed: props.isSensitivePathRevealed,
+                            onToggleSensitivePath: props.onToggleSensitivePath,
+                            onPatch: props.onPatch,
+                          }),
+                        )}
+                      </div>
+                    </section>
+                  `
+                : nothing
+            }
+          </div>
+        `
+      : defaultContent;
+
+  return html`
+    <section class="config-section-card ${showHeader ? "" : "config-section-card--focused"}" id="config-section-${key}">
+      ${
+        showHeader
+          ? html`
+              <div class="config-section-card__header">
+                <span class="config-section-card__icon">${getSectionIcon(key)}</span>
+                <div class="config-section-card__titles">
+                  <h3 class="config-section-card__title">${meta.label}</h3>
+                  ${
+                    meta.description
+                      ? html`<p class="config-section-card__desc">${meta.description}</p>`
+                      : nothing
+                  }
+                </div>
+              </div>
+            `
+          : nothing
+      }
+      <div class="config-section-card__content ${showHeader ? "" : "config-section-card__content--flat"}">
+        ${content}
+      </div>
+    </section>
+  `;
+}
+
+export function getConfigSectionMeta(
+  key: string,
+  schema?: JsonSchema,
+): { label: string; description: string } {
+  const meta = SECTION_META_KEYS[key];
+  if (meta) {
+    return {
+      label: t(meta.labelKey),
+      description: t(meta.descriptionKey),
+    };
+  }
+  return {
+    label: schema?.title ?? humanize(key),
+    description: schema?.description ?? "",
+  };
+}
 
 function getSectionIcon(key: string) {
   return sectionIcons[key as keyof typeof sectionIcons] ?? sectionIcons.default;
@@ -293,7 +664,7 @@ function matchesSearch(params: {
   }
   const criteria = parseConfigSearchQuery(params.query);
   const q = criteria.text;
-  const meta = SECTION_META[params.key];
+  const meta = getConfigSectionMeta(params.key, params.schema);
   const sectionMetaMatches =
     q &&
     (params.key.toLowerCase().includes(q) ||
@@ -316,14 +687,14 @@ function matchesSearch(params: {
 export function renderConfigForm(props: ConfigFormProps) {
   if (!props.schema) {
     return html`
-      <div class="muted">Schema unavailable.</div>
+      <div class="muted">${t("configForm.schemaUnavailable")}</div>
     `;
   }
   const schema = props.schema;
   const value = props.value ?? {};
   if (schemaType(schema) !== "object" || !schema.properties) {
     return html`
-      <div class="callout danger">Unsupported schema. Use Raw.</div>
+      <div class="callout danger">${t("configForm.unsupportedSchema")}</div>
     `;
   }
   const unsupported = new Set(props.unsupportedPaths ?? []);
@@ -384,7 +755,11 @@ export function renderConfigForm(props: ConfigFormProps) {
       <div class="config-empty">
         <div class="config-empty__icon">${icons.search}</div>
         <div class="config-empty__text">
-          ${searchQuery ? `No settings match "${searchQuery}"` : "No settings in this section"}
+          ${
+            searchQuery
+              ? t("configForm.noSettingsMatch", { query: searchQuery })
+              : t("configForm.noSettingsInSection")
+          }
         </div>
       </div>
     `;
@@ -397,8 +772,12 @@ export function renderConfigForm(props: ConfigFormProps) {
           ? (() => {
               const { sectionKey, subsectionKey, schema: node } = subsectionContext;
               const hint = hintForPath([sectionKey, subsectionKey], props.uiHints);
-              const label = hint?.label ?? node.title ?? humanize(subsectionKey);
-              const description = hint?.help ?? node.description ?? "";
+              const normalizedPath = pathKey([sectionKey, subsectionKey]);
+              const label = localizeConfigLabel(
+                hint?.label ?? node.title ?? humanize(subsectionKey),
+                normalizedPath,
+              );
+              const description = hint?.help ?? localizeConfigHelp(node.description, normalizedPath) ?? "";
               const sectionValue = value[sectionKey];
               const scopedValue =
                 sectionValue && typeof sectionValue === "object"
@@ -406,19 +785,8 @@ export function renderConfigForm(props: ConfigFormProps) {
                   : undefined;
               const id = `config-section-${sectionKey}-${subsectionKey}`;
               return html`
-              <section class="config-section-card" id=${id}>
-                <div class="config-section-card__header">
-                  <span class="config-section-card__icon">${getSectionIcon(sectionKey)}</span>
-                  <div class="config-section-card__titles">
-                    <h3 class="config-section-card__title">${label}</h3>
-                    ${
-                      description
-                        ? html`<p class="config-section-card__desc">${description}</p>`
-                        : nothing
-                    }
-                  </div>
-                </div>
-                <div class="config-section-card__content">
+              <section class="config-section-card config-section-card--focused" id=${id}>
+                <div class="config-section-card__content config-section-card__content--flat">
                   ${renderNode({
                     schema: node,
                     value: scopedValue,
@@ -438,42 +806,17 @@ export function renderConfigForm(props: ConfigFormProps) {
             `;
             })()
           : filteredEntries.map(([key, node]) => {
-              const meta = SECTION_META[key] ?? {
-                label: key.charAt(0).toUpperCase() + key.slice(1),
-                description: node.description ?? "",
-              };
+              const meta = getConfigSectionMeta(key, node);
 
-              return html`
-              <section class="config-section-card" id="config-section-${key}">
-                <div class="config-section-card__header">
-                  <span class="config-section-card__icon">${getSectionIcon(key)}</span>
-                  <div class="config-section-card__titles">
-                    <h3 class="config-section-card__title">${meta.label}</h3>
-                    ${
-                      meta.description
-                        ? html`<p class="config-section-card__desc">${meta.description}</p>`
-                        : nothing
-                    }
-                  </div>
-                </div>
-                <div class="config-section-card__content">
-                  ${renderNode({
-                    schema: node,
-                    value: value[key],
-                    path: [key],
-                    hints: props.uiHints,
-                    unsupported,
-                    disabled: props.disabled ?? false,
-                    showLabel: false,
-                    searchCriteria,
-                    revealSensitive: props.revealSensitive ?? false,
-                    isSensitivePathRevealed: props.isSensitivePathRevealed,
-                    onToggleSensitivePath: props.onToggleSensitivePath,
-                    onPatch: props.onPatch,
-                  })}
-                </div>
-              </section>
-            `;
+              return renderSectionNode({
+                key,
+                node,
+                value: value[key],
+                props,
+                unsupported,
+                searchCriteria,
+                showHeader: !(activeSection && filteredEntries.length === 1),
+              });
             })
       }
     </div>

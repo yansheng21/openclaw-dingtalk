@@ -1,54 +1,63 @@
 import { html, nothing } from "lit";
+import { t } from "../../i18n/index.ts";
 import { formatRelativeTimestamp } from "../format.ts";
-import type { SlackStatus } from "../types.ts";
+import type { ChannelAccountSnapshot, SlackStatus } from "../types.ts";
 import { renderChannelConfigSection } from "./channels.config.ts";
+import { formatBooleanLabel, formatProbeStatusLabel } from "./channels.shared.ts";
 import type { ChannelsProps } from "./channels.types.ts";
 
 export function renderSlackCard(params: {
   props: ChannelsProps;
   slack?: SlackStatus | null;
   accountCountLabel: unknown;
+  selectedAccount?: ChannelAccountSnapshot | null;
 }) {
-  const { props, slack, accountCountLabel } = params;
+  const { props, slack, accountCountLabel, selectedAccount } = params;
+  const summaryConfigured = selectedAccount?.configured ?? slack?.configured;
+  const summaryRunning = selectedAccount?.running ?? slack?.running;
+  const summaryLastStartAt = selectedAccount?.lastStartAt ?? slack?.lastStartAt;
+  const summaryLastProbeAt = selectedAccount?.lastProbeAt ?? slack?.lastProbeAt;
+  const summaryLastError = selectedAccount?.lastError ?? slack?.lastError;
+  const summaryProbe =
+    (selectedAccount?.probe as SlackStatus["probe"] | undefined) ?? slack?.probe;
 
   return html`
     <div class="card">
       <div class="card-title">Slack</div>
-      <div class="card-sub">Socket mode status and channel configuration.</div>
       ${accountCountLabel}
 
       <div class="status-list" style="margin-top: 16px;">
         <div>
-          <span class="label">Configured</span>
-          <span>${slack?.configured ? "Yes" : "No"}</span>
+          <span class="label">${t("channels.labels.configured")}</span>
+          <span>${formatBooleanLabel(summaryConfigured)}</span>
         </div>
         <div>
-          <span class="label">Running</span>
-          <span>${slack?.running ? "Yes" : "No"}</span>
+          <span class="label">${t("channels.labels.running")}</span>
+          <span>${formatBooleanLabel(summaryRunning)}</span>
         </div>
         <div>
-          <span class="label">Last start</span>
-          <span>${slack?.lastStartAt ? formatRelativeTimestamp(slack.lastStartAt) : "n/a"}</span>
+          <span class="label">${t("channels.labels.lastStart")}</span>
+          <span>${summaryLastStartAt ? formatRelativeTimestamp(summaryLastStartAt) : t("common.na")}</span>
         </div>
         <div>
-          <span class="label">Last probe</span>
-          <span>${slack?.lastProbeAt ? formatRelativeTimestamp(slack.lastProbeAt) : "n/a"}</span>
+          <span class="label">${t("channels.labels.lastProbe")}</span>
+          <span>${summaryLastProbeAt ? formatRelativeTimestamp(summaryLastProbeAt) : t("common.na")}</span>
         </div>
       </div>
 
       ${
-        slack?.lastError
+        summaryLastError
           ? html`<div class="callout danger" style="margin-top: 12px;">
-            ${slack.lastError}
+            ${summaryLastError}
           </div>`
           : nothing
       }
 
       ${
-        slack?.probe
+        summaryProbe
           ? html`<div class="callout" style="margin-top: 12px;">
-            Probe ${slack.probe.ok ? "ok" : "failed"} ·
-            ${slack.probe.status ?? ""} ${slack.probe.error ?? ""}
+            ${t("channels.actions.probe")} ${formatProbeStatusLabel(summaryProbe.ok)} ·
+            ${summaryProbe.status ?? ""} ${summaryProbe.error ?? ""}
           </div>`
           : nothing
       }
@@ -57,7 +66,7 @@ export function renderSlackCard(params: {
 
       <div class="row" style="margin-top: 12px;">
         <button class="btn" @click=${() => props.onRefresh(true)}>
-          Probe
+          ${t("channels.actions.probe")}
         </button>
       </div>
     </div>

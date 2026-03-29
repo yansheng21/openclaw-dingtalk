@@ -1,0 +1,15 @@
+{
+  "name": "@dingclaw/desktop-shell",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "main": "src/main.js",
+  "scripts": {
+    "dev": "electron ./src/main.js",
+    "start": "electron ./src/main.js",
+    "test": "node --test ./test/*.test.js"
+  },
+  "devDependencies": {
+    "electron": "41.0.3"
+  }
+}

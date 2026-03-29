@@ -13,6 +13,17 @@ function makeCtx(overrides: Partial<MsgContext>): MsgContext {
 
 describe("resolveSessionKey", () => {
   describe("Discord DM session key normalization", () => {
+    it("isolates direct chats when channel context is present without explicit session key", () => {
+      const ctx = makeCtx({
+        ChatType: "direct",
+        From: "discord:123456",
+        SenderId: "123456",
+        Provider: "discord",
+        Surface: "discord",
+      });
+      expect(resolveSessionKey("per-sender", ctx)).toBe("agent:main:discord:direct:+123456");
+    });
+
     it("passes through correct discord:direct keys unchanged", () => {
       const ctx = makeCtx({
         SessionKey: "agent:fina:discord:direct:123456",

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DingClaw 主入口</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="layout">
+      <section class="hero card">
+        <div>
+          <p class="eyebrow">DingClaw Desktop</p>
+          <h1>DingClaw 主入口</h1>
+          <p class="subtitle">应用端主入口，负责启动、接入、诊断与快速跳转。</p>
+        </div>
+        <div class="hero-actions">
+          <button id="btn-admin" class="btn accent">进入管理端</button>
+          <button id="btn-open-log-dir" class="btn ghost">打开日志目录</button>
+        </div>
+      </section>
+
+      <section class="overview">
+        <section class="status card">
+          <div class="status-line">
+            <span class="label">网关状态</span>
+            <span id="phase-badge" class="badge">未知</span>
+          </div>
+          <p id="status-detail" class="detail">等待初始化...</p>
+          <dl class="facts">
+            <div>
+              <dt>工作区</dt>
+              <dd id="workspace-root">-</dd>
+            </div>
+            <div>
+              <dt>管理端</dt>
+              <dd id="gateway-url">-</dd>
+            </div>
+            <div>
+              <dt>日志目录</dt>
+              <dd id="log-directory">-</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="status card">
+          <h2>运行控制</h2>
+          <p class="detail">优先附着已运行实例，必要时再由主入口启动本地网关。</p>
+          <div class="actions">
+            <button id="btn-start" class="btn primary">启动</button>
+            <button id="btn-stop" class="btn">停止</button>
+            <button id="btn-restart" class="btn">重启</button>
+          </div>
+        </section>
+      </section>
+
+      <section class="logs card">
+        <div class="terminal-header">
+          <div>
+            <span>网关日志</span>
+            <p class="terminal-subtitle">终端风格输出，包含桌面壳和网关运行日志。</p>
+          </div>
+          <span id="log-info">终端输出</span>
+        </div>
+        <pre id="terminal" class="terminal"></pre>
+      </section>
+    </main>
+
+    <script type="module" src="./renderer.js"></script>
+  </body>
+</html>

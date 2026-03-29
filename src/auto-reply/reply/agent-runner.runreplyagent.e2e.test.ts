@@ -732,10 +732,7 @@ describe("runReplyAgent typing (heartbeat)", () => {
         storePath,
       });
       const res = await run();
-      expect(Array.isArray(res)).toBe(true);
-      const payloads = res as { text?: string }[];
-      expect(payloads[0]?.text).toContain("Auto-compaction complete");
-      expect(payloads[0]?.text).toContain("count 1");
+      expect(res).toEqual([{ text: "final" }]);
       expect(sessionStore.main.compactionCount).toBe(1);
     });
   });

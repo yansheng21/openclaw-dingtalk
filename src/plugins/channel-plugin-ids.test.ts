@@ -5,6 +5,11 @@ const listPotentialConfiguredChannelIds = vi.hoisted(() => vi.fn());
 const loadPluginManifestRegistry = vi.hoisted(() => vi.fn());
 
 vi.mock("../channels/config-presence.js", () => ({
+  hasMeaningfulChannelConfig: (value: unknown) =>
+    Boolean(value) &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    Object.keys(value as Record<string, unknown>).some((key) => key !== "enabled"),
   listPotentialConfiguredChannelIds,
 }));
 
@@ -12,7 +17,10 @@ vi.mock("./manifest-registry.js", () => ({
   loadPluginManifestRegistry,
 }));
 
-import { resolveGatewayStartupPluginIds } from "./channel-plugin-ids.js";
+import {
+  resolveConfiguredChannelPluginIds,
+  resolveGatewayStartupPluginIds,
+} from "./channel-plugin-ids.js";
 
 describe("resolveGatewayStartupPluginIds", () => {
   beforeEach(() => {
@@ -22,6 +30,12 @@ describe("resolveGatewayStartupPluginIds", () => {
         {
           id: "discord",
           channels: ["discord"],
+          origin: "bundled",
+          enabledByDefault: undefined,
+        },
+        {
+          id: "dingtalk-enterprise",
+          channels: ["dingtalk-enterprise"],
           origin: "bundled",
           enabledByDefault: undefined,
         },
@@ -64,6 +78,38 @@ describe("resolveGatewayStartupPluginIds", () => {
         env: process.env,
       }),
     ).toEqual(["discord", "diagnostics-otel", "custom-sidecar"]);
+  });
+
+  it("treats plugin-backed channel config as configured for startup and configured-channel scopes", () => {
+    listPotentialConfiguredChannelIds.mockReturnValue([]);
+    const config = {
+      plugins: {
+        entries: {
+          "dingtalk-enterprise": {
+            config: {
+              clientId: "ding-app",
+              agentId: "123456",
+            },
+          },
+        },
+      },
+    } as OpenClawConfig;
+
+    expect(
+      resolveConfiguredChannelPluginIds({
+        config,
+        workspaceDir: "/tmp",
+        env: process.env,
+      }),
+    ).toEqual(["dingtalk-enterprise"]);
+
+    expect(
+      resolveGatewayStartupPluginIds({
+        config,
+        workspaceDir: "/tmp",
+        env: process.env,
+      }),
+    ).toEqual(["dingtalk-enterprise", "custom-sidecar"]);
   });
 
   it("does not pull default-on bundled non-channel plugins into startup", () => {

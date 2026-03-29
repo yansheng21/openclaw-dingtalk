@@ -7,7 +7,7 @@ import type {
 } from "../../infra/update-runner.js";
 import { defaultRuntime } from "../../runtime.js";
 import { theme } from "../../terminal/theme.js";
-import type { UpdateCommandOptions } from "./shared.js";
+import { DEFAULT_PACKAGE_NAME, type UpdateCommandOptions } from "./shared.js";
 
 const STEP_LABELS: Record<string, string> = {
   "clean check": "Working directory is clean",
@@ -52,7 +52,7 @@ export function inferUpdateFailureHints(result: UpdateRunResult): string[] {
     hints.push(
       "Detected permission failure (EACCES). Re-run with a writable global prefix or sudo (for system-managed Node installs).",
     );
-    hints.push("Example: npm config set prefix ~/.local && npm i -g openclaw@latest");
+    hints.push(`Example: npm config set prefix ~/.local && npm i -g ${DEFAULT_PACKAGE_NAME}@latest`);
   }
 
   if (
@@ -62,7 +62,7 @@ export function inferUpdateFailureHints(result: UpdateRunResult): string[] {
     hints.push(
       "Detected native optional dependency build failure. The updater retries with --omit=optional automatically.",
     );
-    hints.push("If it still fails: npm i -g openclaw@latest --omit=optional");
+    hints.push(`If it still fails: npm i -g ${DEFAULT_PACKAGE_NAME}@latest --omit=optional`);
   }
 
   return hints;

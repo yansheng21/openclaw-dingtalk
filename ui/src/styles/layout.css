@@ -168,6 +168,28 @@
   text-overflow: ellipsis;
 }
 
+.topnav-shell .dashboard-header__scope {
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--secondary);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.topnav-shell .dashboard-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topnav-shell .page-sub--area {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .topbar-status {
   display: flex;
   align-items: center;

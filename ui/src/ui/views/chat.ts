@@ -1,6 +1,7 @@
 import { html, nothing, type TemplateResult } from "lit";
 import { ref } from "lit/directives/ref.js";
 import { repeat } from "lit/directives/repeat.js";
+import { t } from "../../i18n/index.ts";
 import {
   CHAT_ATTACHMENT_ACCEPT,
   isSupportedChatAttachmentMimeType,
@@ -196,7 +197,7 @@ function renderCompactionIndicator(status: CompactionIndicatorStatus | null | un
   if (status.active) {
     return html`
       <div class="compaction-indicator compaction-indicator--active" role="status" aria-live="polite">
-        ${icons.loader} Compacting context...
+        ${icons.loader} ${t("chat.compacting")}
       </div>
     `;
   }
@@ -205,7 +206,7 @@ function renderCompactionIndicator(status: CompactionIndicatorStatus | null | un
     if (elapsed < COMPACTION_TOAST_DURATION_MS) {
       return html`
         <div class="compaction-indicator compaction-indicator--complete" role="status" aria-live="polite">
-          ${icons.check} Context compacted
+          ${icons.check} ${t("chat.compacted")}
         </div>
       `;
     }
@@ -612,6 +613,8 @@ function renderWelcomeState(props: ChatProps): TemplateResult {
     },
   });
   const logoUrl = agentLogoUrl(props.basePath ?? "");
+  const agents = props.agentsList?.agents ?? [];
+  const agentChoices = agents.filter((agent) => agent.id?.trim());
 
   return html`
     <div class="agent-chat__welcome" style="--agent-color: var(--accent)">
@@ -628,6 +631,30 @@ function renderWelcomeState(props: ChatProps): TemplateResult {
       <p class="agent-chat__hint">
         Type a message below &middot; <kbd>/</kbd> for commands
       </p>
+      ${
+        agentChoices.length > 1
+          ? html`
+              <div class="agent-chat__suggestions" style="margin-bottom: 10px;">
+                ${agentChoices.map((agent) => {
+                  const agentName =
+                    agent.identity?.name?.trim() || agent.name?.trim() || agent.id.trim();
+                  const isActive = agent.id === props.currentAgentId;
+                  return html`
+                    <button
+                      type="button"
+                      class="agent-chat__suggestion"
+                      data-chat-agent-switch=${agent.id}
+                      ?disabled=${isActive}
+                      @click=${() => props.onAgentChange(agent.id)}
+                    >
+                      ${isActive ? `${agentName} · current` : agentName}
+                    </button>
+                  `;
+                })}
+              </div>
+            `
+          : nothing
+      }
       <div class="agent-chat__suggestions">
         ${WELCOME_SUGGESTIONS.map(
           (text) => html`

@@ -1,4 +1,5 @@
-import { html, nothing } from "lit";
+import { html, nothing, type TemplateResult } from "lit";
+import { t } from "../../i18n/index.ts";
 import type {
   AgentIdentityResult,
   AgentsFilesListResult,
@@ -11,6 +12,11 @@ import type {
 } from "../types.ts";
 import { renderAgentOverview } from "./agents-panels-overview.ts";
 import {
+  countExactBindingsForAgent,
+  renderAgentBindings,
+  type AgentBindingDraft,
+} from "./agents-panels-bindings.ts";
+import {
   renderAgentFiles,
   renderAgentChannels,
   renderAgentCron,
@@ -18,7 +24,14 @@ import {
 import { renderAgentTools, renderAgentSkills } from "./agents-panels-tools-skills.ts";
 import { agentBadgeText, buildAgentContext, normalizeAgentLabel } from "./agents-utils.ts";
 
-export type AgentsPanel = "overview" | "files" | "tools" | "skills" | "channels" | "cron";
+export type AgentsPanel =
+  | "overview"
+  | "bindings"
+  | "files"
+  | "tools"
+  | "skills"
+  | "channels"
+  | "cron";
 
 export type ConfigState = {
   form: Record<string, unknown> | null;
@@ -65,6 +78,19 @@ export type ToolsCatalogState = {
   result: ToolsCatalogResult | null;
 };
 
+type JsonRecord = Record<string, unknown>;
+
+export type CreateAgentDraft = {
+  id: string;
+  name?: string;
+  workspace: string;
+  makeDefault: boolean;
+  binding?: {
+    channel: string;
+    accountId: string;
+  };
+};
+
 export type AgentsProps = {
   basePath: string;
   loading: boolean;
@@ -104,15 +130,21 @@ export type AgentsProps = {
   onAgentSkillsClear: (agentId: string) => void;
   onAgentSkillsDisableAll: (agentId: string) => void;
   onSetDefault: (agentId: string) => void;
+  onCreateAgent: (draft: CreateAgentDraft) => void;
+  onSaveBinding: (agentId: string, bindingIndex: number | null, draft: AgentBindingDraft) => void;
+  onRemoveBinding: (bindingIndex: number) => void;
+  onRequestUpdate?: () => void;
 };
 
 export function renderAgents(props: AgentsProps) {
   const agents = props.agentsList?.agents ?? [];
   const defaultId = props.agentsList?.defaultId ?? null;
+  const requestUpdate = props.onRequestUpdate ?? (() => undefined);
   const selectedId = props.selectedAgentId ?? defaultId ?? agents[0]?.id ?? null;
   const selectedAgent = selectedId
     ? (agents.find((agent) => agent.id === selectedId) ?? null)
     : null;
+  const actionsMenuOpen = Boolean(selectedAgent && actionsMenuAgentId === selectedAgent.id);
   const selectedSkillCount =
     selectedId && props.agentSkills.agentId === selectedId
       ? (props.agentSkills.report?.skills?.length ?? null)
@@ -125,6 +157,7 @@ export function renderAgents(props: AgentsProps) {
     ? props.cron.jobs.filter((j) => j.agentId === selectedId).length
     : null;
   const tabCounts: Record<string, number | null> = {
+    bindings: selectedId ? countExactBindingsForAgent(props.config.form, selectedId) : null,
     files: props.agentFiles.list?.files?.length ?? null,
     skills: selectedSkillCount,
     channels: channelEntryCount,
@@ -135,19 +168,22 @@ export function renderAgents(props: AgentsProps) {
     <div class="agents-layout">
       <section class="agents-toolbar">
         <div class="agents-toolbar-row">
-          <span class="agents-toolbar-label">Agent</span>
+          <span class="agents-toolbar-label">${t("agentsPage.toolbar.agentLabel")}</span>
           <div class="agents-control-row">
             <div class="agents-control-select">
               <select
                 class="agents-select"
                 .value=${selectedId ?? ""}
                 ?disabled=${props.loading || agents.length === 0}
-                @change=${(e: Event) => props.onSelectAgent((e.target as HTMLSelectElement).value)}
+                @change=${(e: Event) => {
+                  actionsMenuAgentId = null;
+                  props.onSelectAgent((e.target as HTMLSelectElement).value);
+                }}
               >
                 ${
                   agents.length === 0
                     ? html`
-                        <option value="">No agents</option>
+                        <option value="">${t("agentsPage.toolbar.noAgents")}</option>
                       `
                     : agents.map(
                         (agent) => html`
@@ -168,7 +204,9 @@ export function renderAgents(props: AgentsProps) {
                           class="agent-actions-toggle"
                           type="button"
                           @click=${() => {
-                            actionsMenuOpen = !actionsMenuOpen;
+                            actionsMenuAgentId =
+                              actionsMenuAgentId === selectedAgent.id ? null : selectedAgent.id;
+                            requestUpdate();
                           }}
                         >⋯</button>
                         ${
@@ -177,17 +215,23 @@ export function renderAgents(props: AgentsProps) {
                                 <div class="agent-actions-menu">
                                   <button type="button" @click=${() => {
                                     void navigator.clipboard.writeText(selectedAgent.id);
-                                    actionsMenuOpen = false;
-                                  }}>Copy agent ID</button>
+                                    actionsMenuAgentId = null;
+                                    requestUpdate();
+                                  }}>${t("agentsPage.toolbar.copyAgentId")}</button>
                                   <button
                                     type="button"
                                     ?disabled=${Boolean(defaultId && selectedAgent.id === defaultId)}
                                     @click=${() => {
                                       props.onSetDefault(selectedAgent.id);
-                                      actionsMenuOpen = false;
+                                      actionsMenuAgentId = null;
+                                      requestUpdate();
                                     }}
                                   >
-                                    ${defaultId && selectedAgent.id === defaultId ? "Already default" : "Set as default"}
+                                    ${
+                                      defaultId && selectedAgent.id === defaultId
+                                        ? t("agentsPage.toolbar.alreadyDefault")
+                                        : t("agentsPage.toolbar.setAsDefault")
+                                    }
                                   </button>
                                 </div>
                               `
@@ -197,8 +241,29 @@ export function renderAgents(props: AgentsProps) {
                     `
                   : nothing
               }
+              <button
+                class="btn btn--sm primary"
+                type="button"
+                data-agent-create-open
+                ?disabled=${props.config.loading || !props.config.form}
+                @click=${(event: Event) => {
+                  const dialog = (event.currentTarget as HTMLElement)
+                    .closest(".agents-layout")
+                    ?.querySelector<HTMLDialogElement>("[data-agent-create-dialog]");
+                  if (!(dialog instanceof HTMLDialogElement)) {
+                    return;
+                  }
+                  actionsMenuAgentId = null;
+                  requestUpdate();
+                  seedCreateAgentDialog(dialog, props.config.form);
+                  showDialog(dialog);
+                  dialog.querySelector<HTMLInputElement>("[data-agent-create-id]")?.focus();
+                }}
+              >
+                ${t("agentsPage.toolbar.addAgent")}
+              </button>
               <button class="btn btn--sm agents-refresh-btn" ?disabled=${props.loading} @click=${props.onRefresh}>
-                ${props.loading ? "Loading…" : "Refresh"}
+                ${props.loading ? t("agentsPage.shared.loading") : t("common.refresh")}
               </button>
             </div>
           </div>
@@ -209,13 +274,14 @@ export function renderAgents(props: AgentsProps) {
             : nothing
         }
       </section>
+      ${renderCreateAgentDialog(props, agents)}
       <section class="agents-main">
         ${
           !selectedAgent
             ? html`
                 <div class="card">
-                  <div class="card-title">Select an agent</div>
-                  <div class="card-sub">Pick an agent to inspect its workspace and tools.</div>
+                  <div class="card-title">${t("agentsPage.toolbar.selectAgentTitle")}</div>
+                  <div class="card-sub">${t("agentsPage.toolbar.selectAgentSubtitle")}</div>
                 </div>
               `
             : html`
@@ -243,6 +309,29 @@ export function renderAgents(props: AgentsProps) {
                     : nothing
                 }
                 ${
+                  props.activePanel === "bindings"
+                    ? renderAgentBindings({
+                        agentId: selectedAgent.id,
+                        context: buildAgentContext(
+                          selectedAgent,
+                          props.config.form,
+                          props.agentFiles.list,
+                          defaultId,
+                          props.agentIdentityById[selectedAgent.id] ?? null,
+                        ),
+                        configForm: props.config.form,
+                        configLoading: props.config.loading,
+                        configSaving: props.config.saving,
+                        configDirty: props.config.dirty,
+                        snapshot: props.channels.snapshot,
+                        onConfigReload: props.onConfigReload,
+                        onConfigSave: props.onConfigSave,
+                        onSaveBinding: props.onSaveBinding,
+                        onRemoveBinding: props.onRemoveBinding,
+                      })
+                    : nothing
+                }
+                ${
                   props.activePanel === "files"
                     ? renderAgentFiles({
                         agentId: selectedAgent.id,
@@ -258,6 +347,8 @@ export function renderAgents(props: AgentsProps) {
                         onFileDraftChange: props.onFileDraftChange,
                         onFileReset: props.onFileReset,
                         onFileSave: props.onFileSave,
+                        onOpenTools: () => props.onSelectPanel("tools"),
+                        onOpenSkills: () => props.onSelectPanel("skills"),
                       })
                     : nothing
                 }
@@ -348,7 +439,349 @@ export function renderAgents(props: AgentsProps) {
   `;
 }
 
-let actionsMenuOpen = false;
+function asRecord(value: unknown): JsonRecord | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as JsonRecord) : null;
+}
+
+function asString(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
+function showDialog(dialog: HTMLDialogElement) {
+  if (typeof dialog.showModal === "function") {
+    dialog.showModal();
+    return;
+  }
+  dialog.setAttribute("open", "");
+}
+
+function hideDialog(dialog: HTMLDialogElement) {
+  if (typeof dialog.close === "function") {
+    dialog.close();
+    return;
+  }
+  dialog.removeAttribute("open");
+}
+
+function suggestAgentWorkspace(config: Record<string, unknown> | null, agentId: string): string {
+  const suffix = agentId.trim() || "new-agent";
+  const defaults = asRecord(asRecord(config?.agents)?.defaults);
+  const baseWorkspace = asString(defaults?.workspace);
+  if (!baseWorkspace) {
+    return `workspace-${suffix}`;
+  }
+  return `${baseWorkspace}-${suffix}`;
+}
+
+function setCreateAgentError(dialog: HTMLDialogElement, message: string | null) {
+  const error = dialog.querySelector<HTMLElement>("[data-agent-create-error]");
+  if (!error) {
+    return;
+  }
+  if (!message) {
+    error.textContent = "";
+    error.setAttribute("hidden", "");
+    return;
+  }
+  error.textContent = message;
+  error.removeAttribute("hidden");
+}
+
+function seedCreateAgentDialog(
+  dialog: HTMLDialogElement,
+  config: Record<string, unknown> | null,
+  seed?: Partial<CreateAgentDraft>,
+) {
+  const idInput = dialog.querySelector<HTMLInputElement>("[data-agent-create-id]");
+  const nameInput = dialog.querySelector<HTMLInputElement>("[data-agent-create-name]");
+  const workspaceInput = dialog.querySelector<HTMLInputElement>("[data-agent-create-workspace]");
+  const defaultInput = dialog.querySelector<HTMLInputElement>("[data-agent-create-default]");
+  const bindingChannelInput = dialog.querySelector<HTMLInputElement>(
+    "[data-agent-create-binding-channel]",
+  );
+  const bindingAccountInput = dialog.querySelector<HTMLInputElement>(
+    "[data-agent-create-binding-account]",
+  );
+  const id = seed?.id?.trim() ?? "";
+  if (idInput) {
+    idInput.value = id;
+  }
+  if (nameInput) {
+    nameInput.value = seed?.name?.trim() ?? "";
+  }
+  if (workspaceInput) {
+    workspaceInput.value = seed?.workspace?.trim() || suggestAgentWorkspace(config, id);
+    workspaceInput.dataset.autogenerated = seed?.workspace?.trim() ? "false" : "true";
+  }
+  if (defaultInput) {
+    defaultInput.checked = Boolean(seed?.makeDefault);
+  }
+  if (bindingChannelInput) {
+    bindingChannelInput.value = seed?.binding?.channel?.trim() ?? "";
+  }
+  if (bindingAccountInput) {
+    bindingAccountInput.value = seed?.binding?.accountId?.trim() ?? "";
+  }
+  setCreateAgentError(dialog, null);
+}
+
+function validateCreateAgentDraft(
+  draft: CreateAgentDraft,
+  agents: AgentsListResult["agents"],
+): { field: "id" | "workspace"; message: string } | null {
+  if (!draft.id.trim()) {
+    return { field: "id", message: t("agentsPage.create.requiredId") };
+  }
+  if (!/^[a-z0-9][a-z0-9_-]*$/i.test(draft.id.trim())) {
+    return { field: "id", message: t("agentsPage.create.invalidId") };
+  }
+  if (agents.some((agent) => agent.id === draft.id.trim())) {
+    return { field: "id", message: t("agentsPage.create.duplicateId") };
+  }
+  if (!draft.workspace.trim()) {
+    return { field: "workspace", message: t("agentsPage.create.requiredWorkspace") };
+  }
+  const bindingChannel = draft.binding?.channel?.trim() ?? "";
+  const bindingAccountId = draft.binding?.accountId?.trim() ?? "";
+  if ((bindingChannel && !bindingAccountId) || (!bindingChannel && bindingAccountId)) {
+    return { field: "workspace", message: t("agentsPage.create.bindingIncomplete") };
+  }
+  return null;
+}
+
+function renderCreateAgentDialog(
+  props: AgentsProps,
+  agents: AgentsListResult["agents"],
+): TemplateResult {
+  const channelOptions = Array.from(
+    new Set(
+      [
+        ...(props.channels.snapshot?.channelOrder ?? []),
+        ...Object.keys(props.channels.snapshot?.channelAccounts ?? {}),
+      ].filter(Boolean),
+    ),
+  ).sort((a, b) => a.localeCompare(b));
+  return html`
+    <dialog
+      class="agent-create-dialog"
+      data-agent-create-dialog
+      @click=${(event: Event) => {
+        const dialog = event.currentTarget as HTMLDialogElement;
+        if (event.target === dialog) {
+          hideDialog(dialog);
+        }
+      }}
+    >
+      <form
+        class="agent-create-dialog__panel"
+        method="dialog"
+        @submit=${(event: Event) => {
+          event.preventDefault();
+          const form = event.currentTarget as HTMLFormElement;
+          const dialog = form.closest("dialog");
+          if (!(dialog instanceof HTMLDialogElement)) {
+            return;
+          }
+          const idInput = form.querySelector<HTMLInputElement>("[data-agent-create-id]");
+          const nameInput = form.querySelector<HTMLInputElement>("[data-agent-create-name]");
+          const workspaceInput = form.querySelector<HTMLInputElement>("[data-agent-create-workspace]");
+          const defaultInput = form.querySelector<HTMLInputElement>("[data-agent-create-default]");
+          const bindingChannelInput = form.querySelector<HTMLInputElement>(
+            "[data-agent-create-binding-channel]",
+          );
+          const bindingAccountInput = form.querySelector<HTMLInputElement>(
+            "[data-agent-create-binding-account]",
+          );
+          const bindingChannel = bindingChannelInput?.value.trim() ?? "";
+          const bindingAccountId = bindingAccountInput?.value.trim() ?? "";
+          const draft: CreateAgentDraft = {
+            id: idInput?.value.trim() ?? "",
+            name: nameInput?.value.trim() || undefined,
+            workspace: workspaceInput?.value.trim() ?? "",
+            makeDefault: Boolean(defaultInput?.checked),
+            ...(bindingChannel && bindingAccountId
+              ? {
+                  binding: {
+                    channel: bindingChannel,
+                    accountId: bindingAccountId,
+                  },
+                }
+              : {}),
+          };
+          const error = validateCreateAgentDraft(draft, agents);
+          if (error) {
+            setCreateAgentError(dialog, error.message);
+            if (error.field === "id") {
+              idInput?.focus();
+            } else {
+              workspaceInput?.focus();
+            }
+            return;
+          }
+          props.onCreateAgent(draft);
+          hideDialog(dialog);
+          seedCreateAgentDialog(dialog, props.config.form);
+        }}
+      >
+        <div class="agent-create-dialog__head">
+          <div>
+            <div class="agent-create-dialog__title">${t("agentsPage.create.title")}</div>
+            <div class="agent-create-dialog__sub">${t("agentsPage.create.subtitle")}</div>
+          </div>
+          <button
+            type="button"
+            class="btn btn--sm"
+            @click=${(event: Event) => {
+              const dialog = (event.currentTarget as HTMLElement).closest("dialog");
+              if (dialog instanceof HTMLDialogElement) {
+                hideDialog(dialog);
+              }
+            }}
+          >
+            ${t("agentsPage.shared.close")}
+          </button>
+        </div>
+        <div class="agent-create-dialog__body">
+          <label class="field">
+            <span>${t("agentsPage.create.idLabel")}</span>
+            <input
+              data-agent-create-id
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="xiaolong"
+              @input=${(event: Event) => {
+                const input = event.currentTarget as HTMLInputElement;
+                const dialog = input.closest("dialog");
+                if (!(dialog instanceof HTMLDialogElement)) {
+                  return;
+                }
+                const workspaceInput = dialog.querySelector<HTMLInputElement>(
+                  "[data-agent-create-workspace]",
+                );
+                setCreateAgentError(dialog, null);
+                if (workspaceInput && workspaceInput.dataset.autogenerated !== "false") {
+                  workspaceInput.value = suggestAgentWorkspace(props.config.form, input.value);
+                  workspaceInput.dataset.autogenerated = "true";
+                }
+              }}
+            />
+            <small>${t("agentsPage.create.idHelp")}</small>
+          </label>
+          <label class="field">
+            <span>${t("agentsPage.create.nameLabel")}</span>
+            <input
+              data-agent-create-name
+              type="text"
+              autocomplete="off"
+              placeholder="小龙"
+              @input=${(event: Event) => {
+                const dialog = (event.currentTarget as HTMLElement).closest("dialog");
+                if (dialog instanceof HTMLDialogElement) {
+                  setCreateAgentError(dialog, null);
+                }
+              }}
+            />
+            <small>${t("agentsPage.create.nameHelp")}</small>
+          </label>
+          <label class="field">
+            <span>${t("agentsPage.create.workspaceLabel")}</span>
+            <input
+              data-agent-create-workspace
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              @input=${(event: Event) => {
+                const input = event.currentTarget as HTMLInputElement;
+                const dialog = input.closest("dialog");
+                input.dataset.autogenerated = "false";
+                if (dialog instanceof HTMLDialogElement) {
+                  setCreateAgentError(dialog, null);
+                }
+              }}
+            />
+            <small>${t("agentsPage.create.workspaceHelp")}</small>
+          </label>
+          <label class="field checkbox agent-create-dialog__checkbox">
+            <input data-agent-create-default type="checkbox" />
+            <span>${t("agentsPage.create.defaultLabel")}</span>
+          </label>
+          <div class="agent-create-dialog__binding">
+            <div class="agent-create-dialog__binding-title">
+              ${t("agentsPage.create.bindingTitle")}
+            </div>
+            <div class="agent-create-dialog__binding-sub">
+              ${t("agentsPage.create.bindingSub")}
+            </div>
+            <div class="channels-form-grid" style="margin-top: 12px;">
+              <label class="field">
+                <span>${t("agentsPage.create.bindingChannelLabel")}</span>
+                <input
+                  data-agent-create-binding-channel
+                  type="text"
+                  list="agent-create-binding-channels"
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="telegram"
+                  @input=${(event: Event) => {
+                    const dialog = (event.currentTarget as HTMLElement).closest("dialog");
+                    if (dialog instanceof HTMLDialogElement) {
+                      setCreateAgentError(dialog, null);
+                    }
+                  }}
+                />
+              </label>
+              <label class="field">
+                <span>${t("agentsPage.create.bindingAccountLabel")}</span>
+                <input
+                  data-agent-create-binding-account
+                  type="text"
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="work"
+                  @input=${(event: Event) => {
+                    const dialog = (event.currentTarget as HTMLElement).closest("dialog");
+                    if (dialog instanceof HTMLDialogElement) {
+                      setCreateAgentError(dialog, null);
+                    }
+                  }}
+                />
+              </label>
+            </div>
+            <datalist id="agent-create-binding-channels">
+              ${channelOptions.map((channel) => html`<option value=${channel}></option>`)}
+            </datalist>
+          </div>
+          <div class="agent-create-dialog__hint">${t("agentsPage.create.bindingHint")}</div>
+          <div
+            class="callout danger"
+            data-agent-create-error
+            hidden
+          ></div>
+        </div>
+        <div class="agent-create-dialog__actions">
+          <button
+            type="button"
+            class="btn btn--sm"
+            @click=${(event: Event) => {
+              const dialog = (event.currentTarget as HTMLElement).closest("dialog");
+              if (dialog instanceof HTMLDialogElement) {
+                hideDialog(dialog);
+              }
+            }}
+          >
+            ${t("agentsPage.create.cancel")}
+          </button>
+          <button type="submit" class="btn btn--sm primary" data-agent-create-save>
+            ${t("agentsPage.create.create")}
+          </button>
+        </div>
+      </form>
+    </dialog>
+  `;
+}
+
+let actionsMenuAgentId: string | null = null;
 
 function renderAgentTabs(
   active: AgentsPanel,
@@ -356,12 +789,13 @@ function renderAgentTabs(
   counts: Record<string, number | null>,
 ) {
   const tabs: Array<{ id: AgentsPanel; label: string }> = [
-    { id: "overview", label: "Overview" },
-    { id: "files", label: "Files" },
-    { id: "tools", label: "Tools" },
-    { id: "skills", label: "Skills" },
-    { id: "channels", label: "Channels" },
-    { id: "cron", label: "Cron Jobs" },
+    { id: "overview", label: t("tabs.overview") },
+    { id: "bindings", label: t("agentsPage.tabs.bindings") },
+    { id: "files", label: t("agentsPage.tabs.files") },
+    { id: "tools", label: t("agentsPage.tabs.tools") },
+    { id: "skills", label: t("tabs.skills") },
+    { id: "channels", label: t("tabs.channels") },
+    { id: "cron", label: t("agentsPage.tabs.cron") },
   ];
   return html`
     <div class="agent-tabs">
