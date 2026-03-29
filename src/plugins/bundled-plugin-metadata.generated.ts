@@ -709,6 +709,155 @@ export const GENERATED_BUNDLED_PLUGIN_METADATA = [
     },
   },
   {
+    dirName: "dingtalk-connector",
+    idHint: "dingtalk-connector",
+    source: {
+      source: "./index.js",
+      built: "index.js",
+    },
+    packageName: "@openclaw/dingtalk-connector",
+    packageVersion: "0.0.0",
+    packageManifest: {
+      extensions: ["./index.js"],
+    },
+    manifest: {
+      id: "dingtalk-connector",
+      configSchema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          enabled: {
+            type: "boolean",
+            default: true,
+          },
+        },
+      },
+      channels: ["dingtalk-connector"],
+      name: "DingTalk Channel",
+      description: "DingTalk (钉钉) messaging channel via Stream mode with AI Card streaming",
+      version: "0.8.0",
+    },
+  },
+  {
+    dirName: "dingtalk-enterprise",
+    idHint: "dingtalk-enterprise",
+    source: {
+      source: "./index.ts",
+      built: "index.js",
+    },
+    packageName: "@dingclaw/dingtalk-enterprise",
+    packageVersion: "0.0.0",
+    packageManifest: {
+      extensions: ["./index.ts"],
+    },
+    manifest: {
+      id: "dingtalk-enterprise",
+      configSchema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          enabled: {
+            type: "boolean",
+            default: true,
+          },
+          name: {
+            type: "string",
+          },
+          defaultAccount: {
+            type: "string",
+          },
+          appKey: {
+            type: "string",
+          },
+          appSecret: {
+            type: "string",
+          },
+          clientId: {
+            type: "string",
+          },
+          clientSecret: {
+            type: "string",
+          },
+          agentId: {
+            type: "string",
+          },
+          robotCode: {
+            type: "string",
+          },
+          tenantId: {
+            type: "string",
+          },
+          callbackBaseUrl: {
+            type: "string",
+          },
+          messageCallbackPath: {
+            type: "string",
+            default: "/webhooks/dingtalk/messages",
+          },
+          cardCallbackPath: {
+            type: "string",
+            default: "/webhooks/dingtalk/cards/actions",
+          },
+          oaCallbackPath: {
+            type: "string",
+            default: "/webhooks/dingtalk/oa/events",
+          },
+          accounts: {
+            type: "object",
+            additionalProperties: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                enabled: {
+                  type: "boolean",
+                },
+                name: {
+                  type: "string",
+                },
+                appKey: {
+                  type: "string",
+                },
+                appSecret: {
+                  type: "string",
+                },
+                clientId: {
+                  type: "string",
+                },
+                clientSecret: {
+                  type: "string",
+                },
+                agentId: {
+                  type: "string",
+                },
+                robotCode: {
+                  type: "string",
+                },
+                tenantId: {
+                  type: "string",
+                },
+                callbackBaseUrl: {
+                  type: "string",
+                },
+                messageCallbackPath: {
+                  type: "string",
+                },
+                cardCallbackPath: {
+                  type: "string",
+                },
+                oaCallbackPath: {
+                  type: "string",
+                },
+              },
+            },
+          },
+        },
+      },
+      channels: ["dingtalk-enterprise"],
+      name: "DingTalk Enterprise",
+      description: "Enterprise DingTalk connector for DingClaw.",
+    },
+  },
+  {
     dirName: "discord",
     idHint: "discord",
     source: {
@@ -1261,6 +1410,29 @@ export const GENERATED_BUNDLED_PLUGIN_METADATA = [
         properties: {},
       },
       channels: ["imessage"],
+    },
+  },
+  {
+    dirName: "internal-api-tools",
+    idHint: "internal-api-tools",
+    source: {
+      source: "./index.ts",
+      built: "index.js",
+    },
+    packageName: "@dingclaw/internal-api-tools",
+    packageVersion: "0.0.0",
+    packageManifest: {
+      extensions: ["./index.ts"],
+    },
+    manifest: {
+      id: "internal-api-tools",
+      configSchema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {},
+      },
+      name: "Internal API Tools",
+      description: "Enterprise internal API toolset for DingClaw.",
     },
   },
   {
@@ -2159,6 +2331,29 @@ export const GENERATED_BUNDLED_PLUGIN_METADATA = [
       providerAuthEnvVars: {
         nvidia: ["NVIDIA_API_KEY"],
       },
+    },
+  },
+  {
+    dirName: "oa-tools",
+    idHint: "oa-tools",
+    source: {
+      source: "./index.ts",
+      built: "index.js",
+    },
+    packageName: "@dingclaw/oa-tools",
+    packageVersion: "0.0.0",
+    packageManifest: {
+      extensions: ["./index.ts"],
+    },
+    manifest: {
+      id: "oa-tools",
+      configSchema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {},
+      },
+      name: "OA Tools",
+      description: "OA and approval-related tools for DingClaw.",
     },
   },
   {

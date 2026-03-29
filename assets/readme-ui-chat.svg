@@ -1,0 +1,67 @@
+<svg width="1600" height="920" viewBox="0 0 1600 920" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg3" x1="104" y1="92" x2="1500" y2="856" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF6EE"/>
+      <stop offset="0.38" stop-color="#F6FBFF"/>
+      <stop offset="1" stop-color="#EDF9F5"/>
+    </linearGradient>
+    <filter id="shadow3" x="162" y="60" width="1276" height="796" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="24"/>
+      <feGaussianBlur stdDeviation="30"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.0862745 0 0 0 0 0.12549 0 0 0 0 0.184314 0 0 0 0.12 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_1" result="shape"/>
+    </filter>
+  </defs>
+  <rect width="1600" height="920" rx="40" fill="url(#bg3)"/>
+  <circle cx="1420" cy="178" r="150" fill="#DDF5EF"/>
+  <circle cx="180" cy="760" r="130" fill="#FFE4CE"/>
+  <g filter="url(#shadow3)">
+    <rect x="220" y="96" width="1160" height="712" rx="30" fill="#F8FAFD"/>
+    <rect x="258" y="134" width="258" height="636" rx="24" fill="#163736"/>
+    <text x="298" y="190" fill="#FFFFFF" font-size="28" font-weight="800" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">聊天 / 代理切换</text>
+    <text x="298" y="226" fill="#9CC0BC" font-size="16" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">主动发起会话、切换机器人、看上下文来源</text>
+    <rect x="286" y="266" width="202" height="84" rx="18" fill="#F99A4B"/>
+    <text x="316" y="310" fill="#FFFFFF" font-size="24" font-weight="800" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">蜂擎侠</text>
+    <text x="316" y="336" fill="#FFF2E5" font-size="15" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">采购 / 知识库 / 执行</text>
+    <rect x="286" y="366" width="202" height="72" rx="18" fill="#214A49"/>
+    <text x="316" y="410" fill="#E4F1EE" font-size="21" font-weight="700" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">小龙</text>
+    <rect x="286" y="454" width="202" height="72" rx="18" fill="#214A49"/>
+    <text x="316" y="498" fill="#E4F1EE" font-size="21" font-weight="700" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">默认助手</text>
+
+    <rect x="552" y="134" width="790" height="88" rx="24" fill="#FFFFFF"/>
+    <text x="590" y="186" fill="#23353A" font-size="28" font-weight="800" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">Knowledge-aware Chat + Tool Execution Context</text>
+
+    <rect x="552" y="252" width="520" height="482" rx="24" fill="#FFFFFF"/>
+    <text x="586" y="300" fill="#23353A" font-size="24" font-weight="800" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">会话窗口</text>
+    <rect x="586" y="334" width="452" height="88" rx="20" fill="#F5F8FB"/>
+    <text x="614" y="370" fill="#667684" font-size="17" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">老板：你知道梅格彤天吗？</text>
+    <text x="614" y="398" fill="#95A3AF" font-size="15" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">命中知识库 / 采购部知识库 / 合同索引</text>
+
+    <rect x="618" y="450" width="420" height="168" rx="22" fill="#FFF7EF"/>
+    <text x="648" y="490" fill="#A35B1A" font-size="20" font-weight="800" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">蜂擎侠</text>
+    <text x="648" y="526" fill="#2F3A43" font-size="17" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">已从企业知识库找到“梅格彤天”相关索引，</text>
+    <text x="648" y="554" fill="#2F3A43" font-size="17" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">可以继续回溯合同、供应商与业务上下文。</text>
+    <text x="648" y="594" fill="#766050" font-size="15" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">Source: memory/dingtalk-kb/.../_workspace-index.md</text>
+
+    <rect x="586" y="648" width="452" height="54" rx="18" fill="#173837"/>
+    <text x="614" y="681" fill="#FFFFFF" font-size="17" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">输入问题、主动发起与指定 agent 的新会话</text>
+
+    <rect x="1098" y="252" width="244" height="220" rx="24" fill="#FFFFFF"/>
+    <text x="1128" y="298" fill="#23353A" font-size="22" font-weight="800" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">命中来源</text>
+    <rect x="1128" y="324" width="184" height="50" rx="16" fill="#EAF8F4"/>
+    <text x="1154" y="355" fill="#14685E" font-size="16" font-weight="700" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">采购部知识库</text>
+    <rect x="1128" y="388" width="184" height="50" rx="16" fill="#EEF2FF"/>
+    <text x="1162" y="419" fill="#4654B3" font-size="16" font-weight="700" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">合同索引</text>
+
+    <rect x="1098" y="500" width="244" height="234" rx="24" fill="#FFFFFF"/>
+    <text x="1128" y="546" fill="#23353A" font-size="22" font-weight="800" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">技能与工具</text>
+    <text x="1128" y="586" fill="#566674" font-size="16" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">memory_search</text>
+    <text x="1128" y="616" fill="#566674" font-size="16" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">browser / summarize</text>
+    <text x="1128" y="646" fill="#566674" font-size="16" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">coding-agent / healthcheck</text>
+    <rect x="1128" y="676" width="110" height="36" rx="14" fill="#F99A4B"/>
+    <text x="1156" y="699" fill="#FFFFFF" font-size="15" font-weight="700" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">可控启用</text>
+  </g>
+</svg>

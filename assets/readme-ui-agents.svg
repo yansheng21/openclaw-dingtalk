@@ -1,0 +1,73 @@
+<svg width="1600" height="920" viewBox="0 0 1600 920" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg2" x1="140" y1="108" x2="1468" y2="830" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EEF9F6"/>
+      <stop offset="0.4" stop-color="#F8FCFF"/>
+      <stop offset="1" stop-color="#FFF5EC"/>
+    </linearGradient>
+    <filter id="shadow2" x="176" y="70" width="1252" height="780" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="22"/>
+      <feGaussianBlur stdDeviation="30"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.0784314 0 0 0 0 0.121569 0 0 0 0 0.164706 0 0 0 0.14 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_1" result="shape"/>
+    </filter>
+  </defs>
+  <rect width="1600" height="920" rx="40" fill="url(#bg2)"/>
+  <circle cx="1382" cy="768" r="140" fill="#FFDCC0" fill-opacity="0.55"/>
+  <circle cx="230" cy="124" r="120" fill="#D8F1EA" fill-opacity="0.8"/>
+  <g filter="url(#shadow2)">
+    <rect x="236" y="108" width="1128" height="700" rx="30" fill="#F8FAFD"/>
+    <rect x="272" y="144" width="1056" height="72" rx="24" fill="#FFFFFF"/>
+    <text x="316" y="190" fill="#23353A" font-size="30" font-weight="800" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">Agent Workspace &amp; Knowledge Source Ownership</text>
+    <text x="916" y="190" fill="#7B8A97" font-size="18" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">每个机器人独立身份 / 技能 / 知识源 / 工作区</text>
+
+    <rect x="272" y="248" width="290" height="520" rx="24" fill="#163736"/>
+    <text x="312" y="300" fill="#FFFFFF" font-size="26" font-weight="800" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">代理列表</text>
+    <rect x="300" y="334" width="234" height="90" rx="18" fill="#F99A4B"/>
+    <text x="328" y="376" fill="#FFFFFF" font-size="24" font-weight="800" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">蜂擎侠</text>
+    <text x="328" y="406" fill="#FFF0E1" font-size="16" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">workspace-fengqingxia</text>
+    <rect x="300" y="444" width="234" height="76" rx="18" fill="#214A49"/>
+    <text x="328" y="490" fill="#E4F1EE" font-size="22" font-weight="700" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">小龙</text>
+    <rect x="300" y="538" width="234" height="76" rx="18" fill="#214A49"/>
+    <text x="328" y="584" fill="#E4F1EE" font-size="22" font-weight="700" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">默认助手</text>
+
+    <text x="312" y="660" fill="#9CC0BC" font-size="16" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">能力边界</text>
+    <text x="312" y="694" fill="#FFFFFF" font-size="18" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">• 独立 BOOTSTRAP.md</text>
+    <text x="312" y="726" fill="#FFFFFF" font-size="18" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">• 独立技能白名单</text>
+    <text x="312" y="758" fill="#FFFFFF" font-size="18" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">• 独立知识源 targetAgentId</text>
+
+    <rect x="596" y="248" width="732" height="196" rx="24" fill="#FFFFFF"/>
+    <text x="632" y="294" fill="#23353A" font-size="26" font-weight="800" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">代理上下文</text>
+    <text x="632" y="332" fill="#6A7987" font-size="17" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">蜂擎侠 · relay/gpt-5.4 · memory/dingtalk-kb 已同步</text>
+    <rect x="632" y="360" width="150" height="56" rx="16" fill="#FFF2E5"/>
+    <text x="660" y="394" fill="#A35B1A" font-size="16" font-weight="700" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">知识源 5</text>
+    <rect x="804" y="360" width="176" height="56" rx="16" fill="#EAF8F4"/>
+    <text x="836" y="394" fill="#14685E" font-size="16" font-weight="700" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">已同步文档 1038</text>
+    <rect x="1002" y="360" width="166" height="56" rx="16" fill="#EEF2FF"/>
+    <text x="1036" y="394" fill="#4654B3" font-size="16" font-weight="700" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">技能 12 / 可用</text>
+
+    <rect x="596" y="474" width="352" height="294" rx="24" fill="#FFFFFF"/>
+    <text x="628" y="520" fill="#23353A" font-size="24" font-weight="800" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">知识源列表</text>
+    <text x="628" y="554" fill="#6A7987" font-size="16" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">钉钉 Stream / 高级回调 / 显式绑定</text>
+    <rect x="628" y="584" width="288" height="66" rx="18" fill="#F7FAFD"/>
+    <text x="652" y="622" fill="#22323A" font-size="18" font-weight="700" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">蜂擎侠 / fengqingxia</text>
+    <text x="652" y="644" fill="#6D7A87" font-size="15" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">operatorId 已配置 · 可同步</text>
+    <rect x="628" y="670" width="120" height="38" rx="14" fill="#F99A4B"/>
+    <text x="658" y="694" fill="#FFFFFF" font-size="15" font-weight="700" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">立即同步</text>
+    <rect x="760" y="670" width="120" height="38" rx="14" fill="#173837"/>
+    <text x="790" y="694" fill="#FFFFFF" font-size="15" font-weight="700" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">来源配置</text>
+
+    <rect x="976" y="474" width="352" height="294" rx="24" fill="#FFFFFF"/>
+    <text x="1008" y="520" fill="#23353A" font-size="24" font-weight="800" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">已同步数据</text>
+    <text x="1008" y="554" fill="#6A7987" font-size="16" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">memory/dingtalk-kb / 供 memory_search 检索</text>
+    <rect x="1008" y="586" width="288" height="62" rx="18" fill="#FFF8EF"/>
+    <text x="1032" y="624" fill="#22323A" font-size="18" font-weight="700" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">思齐杏坛</text>
+    <text x="1142" y="624" fill="#8A5B30" font-size="16" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">256 docs</text>
+    <rect x="1008" y="662" width="288" height="62" rx="18" fill="#F7FAFD"/>
+    <text x="1032" y="700" fill="#22323A" font-size="18" font-weight="700" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">采购部知识库</text>
+    <text x="1196" y="700" fill="#58736B" font-size="16" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">218 docs</text>
+  </g>
+</svg>
