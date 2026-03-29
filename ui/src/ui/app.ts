@@ -28,6 +28,8 @@ import {
   startChannelCreate as startChannelCreateInternal,
   toggleDingTalkAccountEditorSensitiveField as toggleDingTalkAccountEditorSensitiveFieldInternal,
   updateGenericChannelAccountEditorAccountId as updateGenericChannelAccountEditorAccountIdInternal,
+  updateGenericChannelAccountEditorAgentField as updateGenericChannelAccountEditorAgentFieldInternal,
+  updateGenericChannelAccountEditorCreateAgentToggle as updateGenericChannelAccountEditorCreateAgentToggleInternal,
   updateGenericChannelAccountEditorDefault as updateGenericChannelAccountEditorDefaultInternal,
   updateDingTalkAccountEditorField as updateDingTalkAccountEditorFieldInternal,
   previewDingTalkPolicyForApp as previewDingTalkPolicyInternal,
@@ -779,6 +781,14 @@ export class OpenClawApp extends LitElement {
     updateGenericChannelAccountEditorDefaultInternal(this, value);
   }
 
+  updateGenericChannelAccountEditorCreateAgentToggle(value: boolean) {
+    updateGenericChannelAccountEditorCreateAgentToggleInternal(this, value);
+  }
+
+  updateGenericChannelAccountEditorAgentField(field: "id" | "name" | "workspace", value: string) {
+    updateGenericChannelAccountEditorAgentFieldInternal(this, field, value);
+  }
+
   patchGenericChannelAccountEditor(path: Array<string | number>, value: unknown) {
     patchGenericChannelAccountEditorInternal(this, path, value);
   }
@@ -800,8 +810,14 @@ export class OpenClawApp extends LitElement {
     await saveDingTalkAccountEditorInternal(this);
   }
 
-  async saveGenericChannelAccountEditor() {
-    await saveGenericChannelAccountEditorInternal(this);
+  async saveGenericChannelAccountEditor(options?: {
+    createAgent?: {
+      id: string;
+      name?: string;
+      workspace: string;
+    } | null;
+  }) {
+    await saveGenericChannelAccountEditorInternal(this, options);
   }
 
   async deleteDingTalkAccount(accountId: string) {

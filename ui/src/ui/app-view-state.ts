@@ -381,6 +381,11 @@ export type AppViewState = {
     updateGenericChannelAccountEditorAccountId: (value: string) => void;
     updateGenericChannelAccountEditorDefault: (value: boolean) => void;
     patchGenericChannelAccountEditor: (path: Array<string | number>, value: unknown) => void;
+    updateGenericChannelAccountEditorCreateAgentToggle: (value: boolean) => void;
+    updateGenericChannelAccountEditorAgentField: (
+      field: "id" | "name" | "workspace",
+      value: string,
+    ) => void;
     updateDingTalkAccountEditorField: (
       field: keyof import("./views/channels.types.ts").DingTalkAccountEditorValues,
       value: string | boolean,
@@ -390,7 +395,13 @@ export type AppViewState = {
     ) => void;
     saveDingTalkAccountEditor: () => Promise<void>;
     deleteDingTalkAccount: (accountId: string) => Promise<void>;
-    saveGenericChannelAccountEditor: () => Promise<void>;
+    saveGenericChannelAccountEditor: (options?: {
+      createAgent?: {
+        id: string;
+        name?: string;
+        workspace: string;
+      } | null;
+    }) => Promise<void>;
     deleteGenericChannelAccount: (channelId: string, accountId: string) => Promise<void>;
     previewDingTalkPolicy: (
       accountId: string | null,

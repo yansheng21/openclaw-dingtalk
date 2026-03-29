@@ -337,6 +337,9 @@ export const en: TranslationMap = {
       tableType: "Type",
       tableState: "State",
       tableAccount: "Account",
+      tableBoundAgent: "Bound agent",
+      tableBoundAgentExact: "Exact binding",
+      tableBoundAgentDefault: "Default route",
       tableConnected: "Connected",
       tableRecentActivity: "Recent activity",
       tableLogs: "Logs",
@@ -399,6 +402,11 @@ export const en: TranslationMap = {
         "If you are looking for API keys, model providers, or the default model, open Model Settings. This dialog only edits the current channel instance.",
       accountIdHelp:
         "Unique instance identifier used for default routing, log filtering, and runtime selection.",
+      displayName: "Display Name",
+      displayNameHelp: "Friendly label shown in lists, details, and default routing.",
+      createAgent: "Also create a dedicated agent and bind this instance",
+      createAgentHelp:
+        "After saving the instance, OpenClaw will create an agent and add an exact channel + account binding for this instance.",
       setAsDefault: "Set as default instance",
       setAsDefaultHelp:
         "This updates the channel's default instance for routing and tests when no account is specified.",

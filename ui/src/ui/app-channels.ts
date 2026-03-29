@@ -1,4 +1,5 @@
 import type { OpenClawApp } from "./app.ts";
+import { loadAgents } from "./controllers/agents.ts";
 import {
   loadChannels,
   logoutWhatsApp,
@@ -8,10 +9,6 @@ import {
 } from "./controllers/channels.ts";
 import { loadConfig, saveConfig } from "./controllers/config.ts";
 import {
-  channelSupportsAccountInstances,
-  resolveChannelAccountSchemaTarget,
-} from "./views/channels.config.ts";
-import {
   cloneConfigObject,
   removePathValue,
   serializeConfigForm,
@@ -19,8 +16,10 @@ import {
 } from "./controllers/config/form-utils.ts";
 import type { NostrProfile } from "./types.ts";
 import { resolveChannelConfigLocation } from "./views/channel-config-extras.ts";
-import { analyzeConfigSchema, type JsonSchema } from "./views/config-form.ts";
-import { REDACTED_SENTINEL } from "./views/config-form.shared.ts";
+import {
+  channelSupportsAccountInstances,
+  resolveChannelAccountSchemaTarget,
+} from "./views/channels.config.ts";
 import { createNostrProfileFormState } from "./views/channels.nostr-profile-form.ts";
 import type {
   DingTalkAccountEditorMode,
@@ -30,6 +29,8 @@ import type {
   GenericChannelAccountEditorMode,
   GenericChannelAccountEditorState,
 } from "./views/channels.types.ts";
+import { REDACTED_SENTINEL } from "./views/config-form.shared.ts";
+import { analyzeConfigSchema, type JsonSchema } from "./views/config-form.ts";
 
 export async function handleWhatsAppStart(host: OpenClawApp, force: boolean) {
   await startWhatsAppLogin(host, force);
@@ -85,6 +86,11 @@ function parseValidationErrors(details: unknown): Record<string, string> {
   return errors;
 }
 
+const SUGGESTED_AGENT_ID_VALID_RE = /^[a-z0-9][a-z0-9_-]{0,63}$/i;
+const SUGGESTED_AGENT_ID_INVALID_CHARS_RE = /[^a-z0-9_-]+/g;
+const SUGGESTED_AGENT_ID_LEADING_DASH_RE = /^-+/;
+const SUGGESTED_AGENT_ID_TRAILING_DASH_RE = /-+$/;
+
 function resolveNostrAccountId(host: OpenClawApp): string {
   const accounts = host.channelsSnapshot?.channelAccounts?.nostr ?? [];
   return accounts[0]?.accountId ?? host.nostrProfileAccountId ?? "default";
@@ -96,6 +102,22 @@ function buildNostrProfileUrl(accountId: string, suffix = ""): string {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function normalizeSuggestedAgentId(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "";
+  }
+  if (SUGGESTED_AGENT_ID_VALID_RE.test(trimmed)) {
+    return trimmed.toLowerCase();
+  }
+  return trimmed
+    .toLowerCase()
+    .replace(SUGGESTED_AGENT_ID_INVALID_CHARS_RE, "-")
+    .replace(SUGGESTED_AGENT_ID_LEADING_DASH_RE, "")
+    .replace(SUGGESTED_AGENT_ID_TRAILING_DASH_RE, "")
+    .slice(0, 64);
 }
 
 function asJsonSchema(value: unknown): JsonSchema | null {
@@ -110,7 +132,106 @@ function resolveNormalizedConfigSchema(schema: unknown): JsonSchema | null {
 }
 
 function resolveEditableConfigRoot(host: OpenClawApp): Record<string, unknown> | null {
-  return (host.configForm ?? host.configSnapshot?.config ?? null);
+  return host.configForm ?? host.configSnapshot?.config ?? null;
+}
+
+function suggestAgentWorkspace(host: OpenClawApp, agentId: string): string {
+  const suffix = agentId.trim() || "new-agent";
+  const defaults = resolveEditableConfigRoot(host)?.agents;
+  const defaultsRecord = isRecord(defaults) ? defaults : null;
+  const agentsDefaults = isRecord(defaultsRecord?.defaults) ? defaultsRecord.defaults : null;
+  const baseWorkspace = readString(agentsDefaults?.workspace).trim();
+  if (!baseWorkspace) {
+    return `workspace-${suffix}`;
+  }
+  return `${baseWorkspace}-${suffix}`;
+}
+
+function resolveGenericEditorDisplayName(
+  values: Record<string, unknown>,
+  accountId: string,
+): string {
+  return readString(values.displayName ?? values.name).trim() || accountId.trim();
+}
+
+function buildGenericChannelAccountAgentDraft(
+  host: OpenClawApp,
+  accountId: string,
+  values: Record<string, unknown>,
+) {
+  const suggestedId = normalizeSuggestedAgentId(accountId);
+  return {
+    enabled: true,
+    id: suggestedId,
+    name: resolveGenericEditorDisplayName(values, accountId),
+    workspace: suggestAgentWorkspace(host, suggestedId),
+    autoId: true,
+    autoName: true,
+    autoWorkspace: true,
+  };
+}
+
+function syncGenericChannelAccountAgentDraft(
+  host: OpenClawApp,
+  state: GenericChannelAccountEditorState,
+): GenericChannelAccountEditorState {
+  if (!state.agentDraft) {
+    return state;
+  }
+  const suggestedId = normalizeSuggestedAgentId(state.accountId);
+  const baseId = state.agentDraft.autoId ? suggestedId : state.agentDraft.id.trim();
+  const nextId = state.agentDraft.autoId ? suggestedId : state.agentDraft.id;
+  const nextWorkspace = state.agentDraft.autoWorkspace
+    ? suggestAgentWorkspace(host, baseId)
+    : state.agentDraft.workspace;
+  const nextName = state.agentDraft.autoName
+    ? resolveGenericEditorDisplayName(state.values, state.accountId)
+    : state.agentDraft.name;
+  return {
+    ...state,
+    agentDraft: {
+      ...state.agentDraft,
+      id: nextId,
+      name: nextName,
+      workspace: nextWorkspace,
+    },
+  };
+}
+
+function validateGenericChannelAccountCreateAgent(
+  host: OpenClawApp,
+  createAgent:
+    | {
+        id: string;
+        name?: string;
+        workspace: string;
+      }
+    | null
+    | undefined,
+): string | null {
+  if (!createAgent) {
+    return null;
+  }
+  if (!host.client || !host.connected) {
+    return "当前未连接网关，无法在保存实例时同时创建 Agent。";
+  }
+  const agentId = createAgent.id.trim();
+  if (!agentId) {
+    return "Agent ID 不能为空。";
+  }
+  if (!SUGGESTED_AGENT_ID_VALID_RE.test(agentId)) {
+    return "Agent ID 仅支持字母、数字、-、_，且必须以字母或数字开头。";
+  }
+  const normalizedAgentId = agentId.toLowerCase();
+  if (
+    host.agentsList?.agents.some((agent) => agent.id.trim().toLowerCase() === normalizedAgentId)
+  ) {
+    return `Agent 已存在: ${agentId}`;
+  }
+  if (!createAgent.workspace.trim()) {
+    return "Agent 工作区路径不能为空。";
+  }
+  return null;
 }
 
 function channelSupportsGenericAccountEditor(host: OpenClawApp, channelId: string): boolean {
@@ -193,9 +314,7 @@ function resolveAccountRecord(
   const matchedKey = Object.keys(accounts).find(
     (key) => normalizeUiAccountId(key) === normalizedTarget,
   );
-  return matchedKey && isRecord(accounts[matchedKey])
-    ? (accounts[matchedKey])
-    : null;
+  return matchedKey && isRecord(accounts[matchedKey]) ? accounts[matchedKey] : null;
 }
 
 function preserveRedactedSecrets<T>(nextValue: T, originalValue: unknown): T {
@@ -208,7 +327,8 @@ function preserveRedactedSecrets<T>(nextValue: T, originalValue: unknown): T {
 
   if (Array.isArray(nextValue) && Array.isArray(originalValue)) {
     return nextValue.map((entry, index) =>
-      preserveRedactedSecrets(entry, originalValue[index])) as T;
+      preserveRedactedSecrets(entry, originalValue[index]),
+    ) as T;
   }
 
   if (
@@ -264,7 +384,7 @@ function resolveDingTalkEditorState(
   const defaults = defaultDingTalkEditorValues();
   const location = resolveChannelConfigLocation(host.configForm, "dingtalk-enterprise");
   const root = isRecord(location?.value) ? location.value : null;
-  const accounts = isRecord(root?.accounts) ? (root.accounts) : {};
+  const accounts = isRecord(root?.accounts) ? root.accounts : {};
   const targetAccountId = accountId?.trim() || host.channelsSelectedAccountId || "default";
   const accountConfig = resolveAccountRecord(accounts, targetAccountId);
   const values =
@@ -292,9 +412,7 @@ function resolveDingTalkEditorState(
   };
 }
 
-function buildDingTalkAccountPayload(
-  values: DingTalkAccountEditorValues,
-): Record<string, unknown> {
+function buildDingTalkAccountPayload(values: DingTalkAccountEditorValues): Record<string, unknown> {
   const payload: Record<string, unknown> = {
     accountId: values.accountId.trim(),
     enabled: values.enabled,
@@ -333,7 +451,7 @@ function resolveGenericChannelAccountEditorState(
   const configRoot = resolveEditableConfigRoot(host);
   const location = resolveChannelConfigLocation(configRoot, channelId);
   const root = isRecord(location?.value) ? location.value : {};
-  const accounts = isRecord(root.accounts) ? (root.accounts) : {};
+  const accounts = isRecord(root.accounts) ? root.accounts : {};
   const targetAccountId = accountId?.trim() || host.channelsSelectedAccountId || "";
   const accountConfig = resolveAccountRecord(accounts, targetAccountId) ?? {};
   const normalizedDefaultAccountId = normalizeUiAccountId(readString(root.defaultAccount));
@@ -352,6 +470,7 @@ function resolveGenericChannelAccountEditorState(
       ? normalizedDefaultAccountId === normalizedTargetAccountId
       : !hasAccounts || normalizedTargetAccountId === "default",
     values,
+    agentDraft: mode === "create" ? buildGenericChannelAccountAgentDraft(host, "", values) : null,
     saving: false,
     error: null,
   };
@@ -437,11 +556,11 @@ export function updateGenericChannelAccountEditorAccountId(host: OpenClawApp, va
   if (!state) {
     return;
   }
-  host.genericChannelAccountEditor = {
+  host.genericChannelAccountEditor = syncGenericChannelAccountAgentDraft(host, {
     ...state,
     accountId: value,
     error: null,
-  };
+  });
 }
 
 export function updateGenericChannelAccountEditorDefault(host: OpenClawApp, value: boolean) {
@@ -478,18 +597,68 @@ export function patchGenericChannelAccountEditor(
   const nextValues = cloneConfigObject(state.values);
   if (relativePath.length === 0) {
     if (isRecord(value)) {
-      host.genericChannelAccountEditor = {
+      host.genericChannelAccountEditor = syncGenericChannelAccountAgentDraft(host, {
         ...state,
         values: cloneConfigObject(value),
         error: null,
-      };
+      });
     }
     return;
   }
   setPathValue(nextValues, relativePath, value);
-  host.genericChannelAccountEditor = {
+  host.genericChannelAccountEditor = syncGenericChannelAccountAgentDraft(host, {
     ...state,
     values: nextValues,
+    error: null,
+  });
+}
+
+export function updateGenericChannelAccountEditorCreateAgentToggle(
+  host: OpenClawApp,
+  value: boolean,
+) {
+  const state = host.genericChannelAccountEditor;
+  if (!state || !state.agentDraft) {
+    return;
+  }
+  host.genericChannelAccountEditor = {
+    ...state,
+    agentDraft: {
+      ...state.agentDraft,
+      enabled: value,
+    },
+    error: null,
+  };
+}
+
+export function updateGenericChannelAccountEditorAgentField(
+  host: OpenClawApp,
+  field: "id" | "name" | "workspace",
+  value: string,
+) {
+  const state = host.genericChannelAccountEditor;
+  if (!state || !state.agentDraft) {
+    return;
+  }
+  const nextDraft = {
+    ...state.agentDraft,
+    [field]: value,
+  };
+  if (field === "id") {
+    nextDraft.autoId = false;
+    if (nextDraft.autoWorkspace) {
+      nextDraft.workspace = suggestAgentWorkspace(host, value.trim());
+    }
+  }
+  if (field === "name") {
+    nextDraft.autoName = false;
+  }
+  if (field === "workspace") {
+    nextDraft.autoWorkspace = false;
+  }
+  host.genericChannelAccountEditor = {
+    ...state,
+    agentDraft: nextDraft,
     error: null,
   };
 }
@@ -598,7 +767,63 @@ function pruneDingtalkConnectorLegacyChannelFields(channelValue: Record<string, 
   return next;
 }
 
-export async function saveGenericChannelAccountEditor(host: OpenClawApp) {
+function normalizeBindingLookup(value: unknown): string {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function findExactBindingIndex(
+  config: Record<string, unknown>,
+  channel: string,
+  accountId: string,
+): number {
+  const bindings = Array.isArray((config as { bindings?: unknown[] }).bindings)
+    ? ((config as { bindings?: unknown[] }).bindings ?? [])
+    : [];
+  const bindingChannel = normalizeBindingLookup(channel);
+  const bindingAccountId = normalizeBindingLookup(accountId);
+  return bindings.findIndex((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      return false;
+    }
+    const record = entry as { type?: unknown; match?: unknown };
+    const type = typeof record.type === "string" ? record.type.trim() : "";
+    if (type && type !== "route") {
+      return false;
+    }
+    if (!record.match || typeof record.match !== "object" || Array.isArray(record.match)) {
+      return false;
+    }
+    const match = record.match as Record<string, unknown>;
+    return (
+      normalizeBindingLookup(match.channel) === bindingChannel &&
+      normalizeBindingLookup(match.accountId) === bindingAccountId &&
+      Object.keys(match).every((key) => key === "channel" || key === "accountId")
+    );
+  });
+}
+
+function upsertExactBinding(
+  config: Record<string, unknown>,
+  params: { agentId: string; channel: string; accountId: string },
+) {
+  const index = findExactBindingIndex(config, params.channel, params.accountId);
+  const nextIndex =
+    index >= 0 ? index : Array.isArray(config.bindings) ? config.bindings.length : 0;
+  setPathValue(config, ["bindings", nextIndex, "agentId"], params.agentId);
+  setPathValue(config, ["bindings", nextIndex, "match", "channel"], params.channel.trim());
+  setPathValue(config, ["bindings", nextIndex, "match", "accountId"], params.accountId.trim());
+}
+
+export async function saveGenericChannelAccountEditor(
+  host: OpenClawApp,
+  options?: {
+    createAgent?: {
+      id: string;
+      name?: string;
+      workspace: string;
+    } | null;
+  },
+) {
   const state = host.genericChannelAccountEditor;
   if (!state || state.saving) {
     return;
@@ -608,6 +833,15 @@ export async function saveGenericChannelAccountEditor(host: OpenClawApp) {
     host.genericChannelAccountEditor = {
       ...state,
       error: "实例 ID 不能为空。",
+    };
+    return;
+  }
+
+  const createAgentError = validateGenericChannelAccountCreateAgent(host, options?.createAgent);
+  if (createAgentError) {
+    host.genericChannelAccountEditor = {
+      ...state,
+      error: createAgentError,
     };
     return;
   }
@@ -627,9 +861,7 @@ export async function saveGenericChannelAccountEditor(host: OpenClawApp) {
     return;
   }
 
-  const baseConfig = cloneConfigObject(
-    (host.configForm ?? host.configSnapshot?.config ?? {}),
-  );
+  const baseConfig = cloneConfigObject(host.configForm ?? host.configSnapshot?.config ?? {});
   const values = cloneConfigObject(state.values);
   const channelLocation = resolveChannelConfigLocation(baseConfig, state.channelId);
   const channelPath = channelLocation?.path ?? target.channelPath;
@@ -638,9 +870,7 @@ export async function saveGenericChannelAccountEditor(host: OpenClawApp) {
     state.channelId === "dingtalk-connector"
       ? pruneDingtalkConnectorLegacyChannelFields(originalChannelValue)
       : originalChannelValue;
-  const accounts = isRecord(channelValue.accounts)
-    ? (channelValue.accounts)
-    : {};
+  const accounts = isRecord(channelValue.accounts) ? channelValue.accounts : {};
   const existing = accounts[normalizedAccountId];
   if (
     state.mode === "create" &&
@@ -702,6 +932,40 @@ export async function saveGenericChannelAccountEditor(host: OpenClawApp) {
   host.genericChannelAccountEditor = null;
   host.channelsSelectedId = state.channelId;
   host.channelsSelectedAccountId = normalizedAccountId;
+
+  const createAgent = options?.createAgent;
+  if (!createAgent) {
+    return;
+  }
+
+  const agentId = createAgent.id.trim();
+  const workspace = createAgent.workspace.trim();
+  const name = createAgent.name?.trim() || normalizedAccountId;
+
+  try {
+    await host.client.request("agents.create", {
+      id: agentId,
+      name,
+      workspace,
+    });
+    await loadConfig(host);
+    const nextConfig = cloneConfigObject(host.configForm ?? host.configSnapshot?.config ?? {});
+    upsertExactBinding(nextConfig, {
+      agentId,
+      channel: state.channelId,
+      accountId: normalizedAccountId,
+    });
+    assignConfigForm(host, nextConfig);
+    const bindingSaved = await handleChannelConfigSave(host);
+    if (!bindingSaved) {
+      host.channelsError =
+        "实例和 Agent 已创建，但实例到 Agent 的绑定保存失败，请到 Agent 绑定页确认。";
+      return;
+    }
+    await loadAgents(host);
+  } catch (err) {
+    host.channelsError = `实例已保存，但自动创建 Agent 失败: ${String(err)}`;
+  }
 }
 
 export async function deleteDingTalkAccount(host: OpenClawApp, accountId: string) {
@@ -717,7 +981,10 @@ export async function deleteDingTalkAccount(host: OpenClawApp, accountId: string
         headers: buildGatewayHttpHeaders(host),
       },
     );
-    const data = (await response.json().catch(() => null)) as { ok?: boolean; error?: string } | null;
+    const data = (await response.json().catch(() => null)) as {
+      ok?: boolean;
+      error?: string;
+    } | null;
     if (!response.ok || data?.ok === false) {
       host.channelsError = data?.error ?? `删除失败 (${response.status})`;
       return;
@@ -748,15 +1015,11 @@ export async function deleteGenericChannelAccount(
     return;
   }
 
-  const baseConfig = cloneConfigObject(
-    (host.configForm ?? host.configSnapshot?.config ?? {}),
-  );
+  const baseConfig = cloneConfigObject(host.configForm ?? host.configSnapshot?.config ?? {});
   const channelLocation = resolveChannelConfigLocation(baseConfig, channelId);
   const channelPath = channelLocation?.path ?? target.channelPath;
   const channelValue = isRecord(channelLocation?.value) ? channelLocation.value : {};
-  const accounts = isRecord(channelValue.accounts)
-    ? (channelValue.accounts)
-    : {};
+  const accounts = isRecord(channelValue.accounts) ? channelValue.accounts : {};
   removePathValue(baseConfig, [...channelPath, "accounts", normalized]);
   const remainingAccountIds = Object.keys(accounts).filter((entry) => entry !== normalized);
   const currentDefault = readString(channelValue.defaultAccount);

@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
+import {
+  openGenericChannelAccountEditor,
+  previewDingTalkPolicyForApp,
+  saveGenericChannelAccountEditor,
+  updateGenericChannelAccountEditorAccountId,
+} from "./app-channels.ts";
 import type { OpenClawApp } from "./app.ts";
 import type { DingTalkPreviewResult } from "./controllers/channels.ts";
-import { openGenericChannelAccountEditor, previewDingTalkPolicyForApp } from "./app-channels.ts";
 
 function createPreviewResult(): DingTalkPreviewResult {
   return {
@@ -41,24 +46,28 @@ function createPreviewResult(): DingTalkPreviewResult {
 }
 
 function createHost() {
+  const request = vi.fn().mockResolvedValue(createPreviewResult());
   return {
-    client: {
-      request: vi.fn().mockResolvedValue(createPreviewResult()),
-    },
-    connected: true,
-    dingtalkPreviewLoading: false,
-    dingtalkPreviewResult: null,
-    channelsError: null,
-  } as unknown as OpenClawApp;
+    host: {
+      client: {
+        request,
+      },
+      connected: true,
+      dingtalkPreviewLoading: false,
+      dingtalkPreviewResult: null,
+      channelsError: null,
+    } as unknown as OpenClawApp,
+    request,
+  };
 }
 
 describe("previewDingTalkPolicyForApp", () => {
   it("builds direct-message preview payloads with an explicit direct chat type", async () => {
-    const host = createHost();
+    const { host, request } = createHost();
 
     await previewDingTalkPolicyForApp(host, "corp-main", "direct");
 
-    expect(host.client!.request).toHaveBeenCalledWith(
+    expect(request).toHaveBeenCalledWith(
       "dingtalk-enterprise.preview-policy",
       expect.objectContaining({
         accountId: "corp-main",
@@ -74,11 +83,11 @@ describe("previewDingTalkPolicyForApp", () => {
   });
 
   it("builds group-mention preview payloads with fields the backend actually recognizes", async () => {
-    const host = createHost();
+    const { host, request } = createHost();
 
     await previewDingTalkPolicyForApp(host, "corp-main", "groupMention");
 
-    expect(host.client!.request).toHaveBeenCalledWith(
+    expect(request).toHaveBeenCalledWith(
       "dingtalk-enterprise.preview-policy",
       expect.objectContaining({
         accountId: "corp-main",
@@ -131,5 +140,76 @@ describe("openGenericChannelAccountEditor", () => {
     expect(host.genericChannelAccountEditor?.values.clientId).toBe("snapshot-client-id");
     expect(host.genericChannelAccountEditor?.values.dmPolicy).toBe("pairing");
     expect(host.genericChannelAccountEditor?.setAsDefault).toBe(true);
+  });
+
+  it("prepares an agent draft for create mode and follows account id changes", () => {
+    const host = {
+      configForm: {
+        agents: {
+          defaults: {
+            workspace: "/tmp/workspace",
+          },
+        },
+      },
+      configSnapshot: null,
+      configSchema: null,
+      connected: false,
+      client: null,
+      channelsSelectedId: null,
+      channelsSelectedAccountId: null,
+      genericChannelAccountEditor: null,
+      channelsRevealedSensitivePaths: new Set(),
+    } as unknown as OpenClawApp;
+
+    openGenericChannelAccountEditor(host, "dingtalk-connector", "create");
+    updateGenericChannelAccountEditorAccountId(host, "xiaolong");
+
+    expect(host.genericChannelAccountEditor?.agentDraft?.enabled).toBe(true);
+    expect(host.genericChannelAccountEditor?.agentDraft?.id).toBe("xiaolong");
+    expect(host.genericChannelAccountEditor?.agentDraft?.workspace).toBe("/tmp/workspace-xiaolong");
+  });
+});
+
+describe("saveGenericChannelAccountEditor", () => {
+  it("blocks create-agent saves before persisting when the gateway is disconnected", async () => {
+    const host = {
+      client: null,
+      connected: false,
+      configForm: {
+        channels: {},
+      },
+      configSnapshot: null,
+      configSchema: null,
+      genericChannelAccountEditor: {
+        channelId: "dingtalk-connector",
+        mode: "create",
+        originalAccountId: null,
+        accountId: "xiaolong",
+        setAsDefault: false,
+        values: {},
+        agentDraft: {
+          enabled: true,
+          id: "xiaolong",
+          name: "小龙",
+          workspace: "/tmp/workspace-xiaolong",
+          autoId: true,
+          autoName: true,
+          autoWorkspace: true,
+        },
+        saving: false,
+        error: null,
+      },
+    } as unknown as OpenClawApp;
+
+    await saveGenericChannelAccountEditor(host, {
+      createAgent: {
+        id: "xiaolong",
+        name: "小龙",
+        workspace: "/tmp/workspace-xiaolong",
+      },
+    });
+
+    expect(host.genericChannelAccountEditor?.error).toContain("当前未连接网关");
+    expect(host.genericChannelAccountEditor?.saving).toBe(false);
   });
 });

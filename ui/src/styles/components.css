@@ -523,17 +523,11 @@
 
 .channels-table {
   gap: 0;
-  border: 1px solid color-mix(in srgb, var(--border) 92%, transparent);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   overflow: auto;
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--card) 98%, transparent) 0%,
-    var(--bg-secondary) 100%
-  );
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, white 4%, transparent),
-    0 10px 22px color-mix(in srgb, black 6%, transparent);
+  background: var(--card);
+  box-shadow: none;
 }
 
 .channels-table__head,
@@ -544,26 +538,35 @@
     minmax(72px, 0.55fr) minmax(120px, 0.9fr) minmax(72px, 0.55fr) minmax(260px, 1.8fr);
 }
 
+.channels-table--accounts .channels-table__head,
+.channels-table--accounts .channels-table__row {
+  min-width: 1300px;
+  grid-template-columns:
+    minmax(220px, 1.9fr) minmax(100px, 0.75fr) minmax(100px, 0.8fr) minmax(110px, 0.8fr)
+    minmax(180px, 1.35fr) minmax(72px, 0.55fr) minmax(120px, 0.85fr) minmax(72px, 0.55fr)
+    minmax(260px, 1.8fr);
+}
+
 .channels-table__head {
   position: sticky;
   top: 0;
   z-index: 1;
-  min-height: 48px;
-  padding: 0 14px;
+  min-height: 44px;
+  padding: 0 12px;
   border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--bg-elevated) 94%, transparent);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  background: var(--bg-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
 }
 
 .channels-table__row {
-  min-height: 80px;
-  padding: 14px;
+  min-height: 72px;
+  padding: 12px;
   align-items: flex-start;
   border: 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
+  border-bottom: 1px solid var(--border);
   border-radius: 0;
   background: transparent;
 }
@@ -573,10 +576,16 @@
 }
 
 .channels-table__row:hover {
-  background: color-mix(in srgb, var(--accent) 6%, var(--bg-elevated));
+  background: var(--bg-secondary);
 }
 
 .channels-table__primary {
+  min-width: 0;
+}
+
+.channels-table__binding {
+  display: grid;
+  gap: 6px;
   min-width: 0;
 }
 
@@ -845,18 +854,10 @@
   display: grid;
   gap: 14px;
   padding: 20px 22px;
-  border: 1px solid color-mix(in srgb, var(--border) 92%, transparent);
-  border-radius: calc(var(--radius-lg) + 2px);
-  background:
-    radial-gradient(
-      circle at top right,
-      color-mix(in srgb, var(--accent) 8%, transparent),
-      transparent 42%
-    ),
-    linear-gradient(180deg, var(--card) 0%, var(--bg-secondary) 100%);
-  box-shadow:
-    inset 0 1px 0 color-mix(in srgb, white 6%, transparent),
-    0 14px 30px color-mix(in srgb, black 8%, transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  box-shadow: none;
 }
 
 .channels-selection__summary {
@@ -885,6 +886,25 @@
   color: var(--muted);
   font-size: 13px;
   line-height: 1.5;
+}
+
+.channels-modal__meta {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.channels-modal__meta-label {
+  color: var(--muted);
+}
+
+.channels-modal__meta-value {
+  color: var(--text-strong);
+  font-weight: 600;
 }
 
 .channels-selection__nav {

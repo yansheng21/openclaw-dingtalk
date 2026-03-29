@@ -936,6 +936,10 @@ export function renderApp(state: AppViewState) {
                     state.updateGenericChannelAccountEditorAccountId(value),
                   onGenericChannelAccountEditorDefaultChange: (value) =>
                     state.updateGenericChannelAccountEditorDefault(value),
+                  onGenericChannelAccountEditorCreateAgentToggle: (value) =>
+                    state.updateGenericChannelAccountEditorCreateAgentToggle(value),
+                  onGenericChannelAccountEditorAgentFieldChange: (field, value) =>
+                    state.updateGenericChannelAccountEditorAgentField(field, value),
                   onGenericChannelAccountEditorPatch: (path, value) =>
                     state.patchGenericChannelAccountEditor(path, value),
                   onDingTalkAccountEditorFieldChange: (field, value) =>
@@ -945,7 +949,8 @@ export function renderApp(state: AppViewState) {
                   onSaveDingTalkAccountEditor: () => state.saveDingTalkAccountEditor(),
                   onDeleteDingTalkAccount: (accountId) =>
                     void state.deleteDingTalkAccount(accountId),
-                  onSaveGenericChannelAccountEditor: () => state.saveGenericChannelAccountEditor(),
+                  onSaveGenericChannelAccountEditor: (options) =>
+                    state.saveGenericChannelAccountEditor(options),
                   onDeleteGenericChannelAccount: (channelId, accountId) =>
                     void state.deleteGenericChannelAccount(channelId, accountId),
                   onLogsRefresh: () => void loadLogs(state, { reset: true }),

@@ -22,7 +22,6 @@ import {
   renderChannelConfigForm,
   renderChannelConfigSection,
 } from "./channels.config.ts";
-import { analyzeConfigSchema } from "./config-form.ts";
 import { renderDingTalkCard } from "./channels.dingtalk.ts";
 import { renderDiscordCard } from "./channels.discord.ts";
 import { renderGoogleChatCard } from "./channels.googlechat.ts";
@@ -47,6 +46,7 @@ import type {
   DingTalkAccountEditorValues,
 } from "./channels.types.ts";
 import { renderWhatsAppCard } from "./channels.whatsapp.ts";
+import { analyzeConfigSchema } from "./config-form.ts";
 
 type OrderedChannel = {
   key: ChannelKey;
@@ -71,8 +71,28 @@ type ChannelListEntry = {
   supportsDelete: boolean;
 };
 
+type JsonRecord = Record<string, unknown>;
+
+type BoundAgentSummary = {
+  id: string;
+  label: string;
+  source: "exact" | "default";
+};
+
 const PRIORITY_CHANNEL_IDS = ["dingtalk-connector", "dingtalk-enterprise"] as const;
 const HIDDEN_CHANNEL_IDS = new Set<ChannelKey>(["dingtalk-enterprise"]);
+
+function asRecord(value: unknown): JsonRecord | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as JsonRecord) : null;
+}
+
+function asString(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
+function normalizeLookup(value: string | null | undefined): string {
+  return value?.trim().toLowerCase() ?? "";
+}
 
 export function renderChannels(props: ChannelsProps) {
   const normalizedConfigSchema = analyzeConfigSchema(props.configSchema).schema;
@@ -108,8 +128,7 @@ export function renderChannels(props: ChannelsProps) {
   );
   const connectedAccounts = countConnectedAccounts(props.snapshot);
   const selectedAccounts = props.snapshot?.channelAccounts?.[selectedChannelKey] ?? [];
-  const selectedStatus =
-    (channels?.[selectedChannelKey] ?? null) as Record<string, unknown> | null;
+  const selectedStatus = (channels?.[selectedChannelKey] ?? null) as Record<string, unknown> | null;
   const selectedAccount = resolveSelectedChannelAccount(
     selectedStatus,
     selectedAccounts,
@@ -260,15 +279,18 @@ function renderChannelInstanceDetailModal(params: {
   props: ChannelsProps;
   data: ChannelsChannelData;
 }) {
-  const {
-    selectedChannelKey,
-    selectedLabel,
-    selectedDetail,
-    selectedAccount,
-    props,
-  } = params;
+  const { selectedChannelKey, selectedLabel, selectedDetail, selectedAccount, props } = params;
   const modalTitle = selectedLabel;
   const modalSubtitle = selectedDetail;
+  const boundAgent = selectedAccount
+    ? resolveBoundAgentSummary(props.configForm, selectedChannelKey, selectedAccount.accountId)
+    : null;
+  const boundAgentSource =
+    boundAgent?.source === "exact"
+      ? t("channels.page.tableBoundAgentExact")
+      : boundAgent?.source === "default"
+        ? t("channels.page.tableBoundAgentDefault")
+        : null;
   return html`
     <div
       class="channels-modal-overlay"
@@ -285,6 +307,21 @@ function renderChannelInstanceDetailModal(params: {
           <div>
             <div class="channels-modal__title">${modalTitle}</div>
             <div class="channels-modal__sub">${modalSubtitle}</div>
+            <div class="channels-modal__meta">
+              <span class="channels-modal__meta-label">${t("channels.page.tableBoundAgent")}</span>
+              <span class="channels-modal__meta-value">
+                ${boundAgent?.label ?? t("common.na")}
+              </span>
+              ${
+                boundAgentSource
+                  ? html`
+                      <span class="channels-state-badge channels-state-badge--${boundAgent?.source === "exact" ? "ok" : "muted"}">
+                        ${boundAgentSource}
+                      </span>
+                    `
+                  : nothing
+              }
+            </div>
           </div>
           <button class="btn btn--sm" @click=${() => props.onSelectChannelAccount(null)}>
             ${t("channels.actions.close")}
@@ -318,8 +355,10 @@ function supportsGenericChannelAccountEditor(
   props: ChannelsProps,
   channelId: string,
 ): boolean {
-  return channelId !== "dingtalk-enterprise" &&
-    channelSupportsAccountInstances(configSchema, channelId, props.configForm);
+  return (
+    channelId !== "dingtalk-enterprise" &&
+    channelSupportsAccountInstances(configSchema, channelId, props.configForm)
+  );
 }
 
 function supportsChannelInstanceEditor(
@@ -327,8 +366,10 @@ function supportsChannelInstanceEditor(
   props: ChannelsProps,
   channelId: string,
 ): boolean {
-  return channelId === "dingtalk-enterprise" ||
-    supportsGenericChannelAccountEditor(configSchema, props, channelId);
+  return (
+    channelId === "dingtalk-enterprise" ||
+    supportsGenericChannelAccountEditor(configSchema, props, channelId)
+  );
 }
 
 function renderChannelListPage(params: {
@@ -443,9 +484,11 @@ function renderChannelListPage(params: {
                       <div>${entry.accountDisplay}</div>
                       <div>${entry.connectedCount}</div>
                       <div>
-                        ${entry.lastActivityAt
-                          ? formatRelativeTimestamp(entry.lastActivityAt)
-                          : t("common.na")}
+                        ${
+                          entry.lastActivityAt
+                            ? formatRelativeTimestamp(entry.lastActivityAt)
+                            : t("common.na")
+                        }
                       </div>
                       <div>${entry.logCount}</div>
                       <div class="channels-table__actions">
@@ -557,12 +600,13 @@ function renderChannelAccountDirectory(params: {
             `
           : nothing
       }
-      <div class="table channels-table">
+      <div class="table channels-table channels-table--accounts">
         <div class="table-head channels-table__head">
           <div>${t("channels.page.tableInstance")}</div>
           <div>${t("channels.page.tableChannel")}</div>
           <div>${t("channels.page.tableState")}</div>
           <div>${t("channels.page.tableAccount")}</div>
+          <div>${t("channels.page.tableBoundAgent")}</div>
           <div>${t("channels.page.tableConnected")}</div>
           <div>${t("channels.page.tableRecentActivity")}</div>
           <div>${t("channels.page.tableLogs")}</div>
@@ -573,6 +617,11 @@ function renderChannelAccountDirectory(params: {
           const stateLabel = resolveAccountStateSummary(account);
           const lastActivity = resolveAccountLastActivity(account);
           const logCount = filterAccountLogs(channelLogs, account.accountId).length;
+          const boundAgent = resolveBoundAgentSummary(
+            props.configForm,
+            channelKey,
+            account.accountId,
+          );
           const detailAction = () => props.onSelectChannelAccount(account.accountId);
           const editLabel =
             channelKey === "dingtalk-enterprise" || supportsGenericEditor
@@ -594,7 +643,7 @@ function renderChannelAccountDirectory(params: {
           return html`
             <div
               class="table-row channels-table__row"
-              style=${isSelected ? "background: color-mix(in srgb, var(--bg-secondary) 72%, transparent);" : ""}
+              style=${isSelected ? "background: var(--bg-secondary);" : ""}
             >
               <div class="channels-table__primary">
                 <div class="channels-table__name">
@@ -609,6 +658,7 @@ function renderChannelAccountDirectory(params: {
                 </span>
               </div>
               <div>${account.accountId}</div>
+              <div>${renderBoundAgentSummary(boundAgent)}</div>
               <div>${account.connected || account.running ? 1 : 0}</div>
               <div>
                 ${lastActivity ? formatRelativeTimestamp(lastActivity) : t("common.na")}
@@ -620,9 +670,11 @@ function renderChannelAccountDirectory(params: {
                 </button>
                 <button class="btn btn--sm" @click=${editAction}>${editLabel}</button>
                 <button class="btn btn--sm" @click=${actionAction}>
-                  ${channelKey === "dingtalk-enterprise"
-                    ? t("channels.actions.testConnection")
-                    : t("channels.actions.refresh")}
+                  ${
+                    channelKey === "dingtalk-enterprise"
+                      ? t("channels.actions.testConnection")
+                      : t("channels.actions.refresh")
+                  }
                 </button>
                 ${
                   channelKey === "dingtalk-enterprise" || supportsGenericEditor
@@ -695,12 +747,16 @@ function renderChannelDetailPage(params: {
     props,
     selectedChannelKey,
   );
-  const supportsInstanceEditor = selectedChannelKey === "dingtalk-enterprise" || supportsGenericEditor;
+  const supportsInstanceEditor =
+    selectedChannelKey === "dingtalk-enterprise" || supportsGenericEditor;
   const selectedAccountActivity =
     selectedAccount?.lastInboundAt ??
     selectedAccount?.lastConnectedAt ??
     selectedAccount?.lastStartAt ??
     null;
+  const selectedAccountBoundAgent = selectedAccount
+    ? resolveBoundAgentSummary(props.configForm, selectedChannelKey, selectedAccount.accountId)
+    : null;
   const showAccountDirectory = hasAccounts || supportsInstanceEditor;
   const showAccountBack = hasAccounts && selectedAccount != null;
   const showInstanceDetail =
@@ -718,6 +774,13 @@ function renderChannelDetailPage(params: {
     showSharedGroupWarning,
     showUnsafeDmScopeWarning,
   });
+  const selectedAccountBoundAgentText = selectedAccountBoundAgent
+    ? `${selectedAccountBoundAgent.label} · ${
+        selectedAccountBoundAgent.source === "exact"
+          ? t("channels.page.tableBoundAgentExact")
+          : t("channels.page.tableBoundAgentDefault")
+      }`
+    : t("common.na");
   return html`
     <section class="channels-detail-page">
       <section class="channels-selection">
@@ -765,7 +828,10 @@ function renderChannelDetailPage(params: {
                                 class="btn primary"
                                 @click=${() => {
                                   if (selectedChannelKey === "dingtalk-enterprise") {
-                                    props.onOpenDingTalkAccountEditor("edit", selectedAccount.accountId);
+                                    props.onOpenDingTalkAccountEditor(
+                                      "edit",
+                                      selectedAccount.accountId,
+                                    );
                                     return;
                                   }
                                   props.onOpenGenericChannelAccountEditor(
@@ -780,18 +846,27 @@ function renderChannelDetailPage(params: {
                             `
                           : nothing
                       }
-                      <button
-                        class="btn ${selectedAccount ? "" : "primary"}"
-                        @click=${() => {
-                          if (selectedChannelKey === "dingtalk-enterprise") {
-                            props.onOpenDingTalkAccountEditor("create");
-                            return;
-                          }
-                          props.onOpenGenericChannelAccountEditor(selectedChannelKey, "create");
-                        }}
-                      >
-                        ${t("channels.actions.createInstance")}
-                      </button>
+                      ${
+                        selectedAccount
+                          ? nothing
+                          : html`
+                              <button
+                                class="btn primary"
+                                @click=${() => {
+                                  if (selectedChannelKey === "dingtalk-enterprise") {
+                                    props.onOpenDingTalkAccountEditor("create");
+                                    return;
+                                  }
+                                  props.onOpenGenericChannelAccountEditor(
+                                    selectedChannelKey,
+                                    "create",
+                                  );
+                                }}
+                              >
+                                ${t("channels.actions.createInstance")}
+                              </button>
+                            `
+                      }
                     </div>
                   `
                 : nothing
@@ -826,6 +901,10 @@ function renderChannelDetailPage(params: {
                     tone: resolveStateTone(selectedStateLabel),
                   })}
                   ${renderSelectionStat(t("channels.labels.accountId"), selectedAccount.accountId)}
+                  ${renderSelectionStat(
+                    t("channels.page.tableBoundAgent"),
+                    selectedAccountBoundAgentText,
+                  )}
                   ${renderSelectionStat(
                     t("channels.labels.recentActivity"),
                     selectedAccountActivity
@@ -867,9 +946,11 @@ function renderChannelDetailPage(params: {
         }
       </section>
 
-      ${selectedAccount || supportsInstanceEditor
-        ? nothing
-        : renderChannelConfigSection({ channelId: selectedChannelKey, props })}
+      ${
+        selectedAccount || supportsInstanceEditor
+          ? nothing
+          : renderChannelConfigSection({ channelId: selectedChannelKey, props })
+      }
 
       ${
         showAccountDirectory && !selectedAccount
@@ -962,11 +1043,9 @@ function renderChannelCreatePickerModal(
                       }
                     </div>
                     <span
-                      class="channels-state-badge channels-state-badge--${supportsDirectCreate
-                        ? "warn"
-                        : isRecommended
-                          ? "ok"
-                          : "muted"}"
+                      class="channels-state-badge channels-state-badge--${
+                        supportsDirectCreate ? "warn" : isRecommended ? "ok" : "muted"
+                      }"
                     >
                       ${
                         isRecommended
@@ -995,9 +1074,11 @@ function renderChannelCreatePickerModal(
                       class="btn ${isRecommended ? "primary" : ""}"
                       @click=${() => props.onStartChannelCreate(channel.key)}
                     >
-                      ${supportsDirectCreate
-                        ? t("channels.actions.createInstance")
-                        : t("channels.actions.configureIntegration")}
+                      ${
+                        supportsDirectCreate
+                          ? t("channels.actions.createInstance")
+                          : t("channels.actions.configureIntegration")
+                      }
                     </button>
                   </div>
                 </section>
@@ -1078,9 +1159,11 @@ function renderGenericChannelAccountEditorModal(props: ChannelsProps) {
         <div class="channels-modal__head">
           <div>
             <div class="channels-modal__title">
-              ${state.mode === "create"
-                ? t("channels.actions.createInstance")
-                : t("channels.actions.editInstance")}
+              ${
+                state.mode === "create"
+                  ? t("channels.actions.createInstance")
+                  : t("channels.actions.editInstance")
+              }
             </div>
             <div class="channels-modal__sub">
               ${channelLabel} · ${t("channels.genericEditor.subtitle")}
@@ -1108,7 +1191,7 @@ function renderGenericChannelAccountEditorModal(props: ChannelsProps) {
               <span>${t("channels.genericEditor.displayName")}</span>
               <input
                 type="text"
-                .value=${String((state.values).displayName ?? state.values.name ?? "")}
+                .value=${asString(state.values.displayName) ?? asString(state.values.name) ?? ""}
                 ?disabled=${state.saving}
                 placeholder="总部审批机器人"
                 @input=${(event: Event) =>
@@ -1135,6 +1218,78 @@ function renderGenericChannelAccountEditorModal(props: ChannelsProps) {
               <small class="muted">${t("channels.genericEditor.accountIdHelp")}</small>
             </label>
           </div>
+          ${
+            state.mode === "create" && state.agentDraft
+              ? html`
+                  <div class="callout info" style="margin-top: 16px;">
+                    <label class="field checkbox" style="margin: 0;">
+                      <input
+                        type="checkbox"
+                        .checked=${state.agentDraft.enabled}
+                        ?disabled=${state.saving}
+                        @change=${(event: Event) =>
+                          props.onGenericChannelAccountEditorCreateAgentToggle?.(
+                            (event.target as HTMLInputElement).checked,
+                          )}
+                      />
+                      <span>${t("channels.genericEditor.createAgent")}</span>
+                    </label>
+                    <div class="muted" style="margin-top: 8px;">
+                      ${t("channels.genericEditor.createAgentHelp")}
+                    </div>
+                    ${
+                      state.agentDraft.enabled
+                        ? html`
+                            <div class="channels-form-grid" style="margin-top: 12px;">
+                              <label class="field">
+                                <span>${t("agentsPage.create.idLabel")}</span>
+                                <input
+                                  type="text"
+                                  class="mono"
+                                  .value=${state.agentDraft.id}
+                                  ?disabled=${state.saving}
+                                  @input=${(event: Event) =>
+                                    props.onGenericChannelAccountEditorAgentFieldChange?.(
+                                      "id",
+                                      (event.target as HTMLInputElement).value,
+                                    )}
+                                />
+                              </label>
+                              <label class="field">
+                                <span>${t("agentsPage.create.nameLabel")}</span>
+                                <input
+                                  type="text"
+                                  .value=${state.agentDraft.name}
+                                  ?disabled=${state.saving}
+                                  @input=${(event: Event) =>
+                                    props.onGenericChannelAccountEditorAgentFieldChange?.(
+                                      "name",
+                                      (event.target as HTMLInputElement).value,
+                                    )}
+                                />
+                              </label>
+                              <label class="field" style="grid-column: 1 / -1;">
+                                <span>${t("agentsPage.create.workspaceLabel")}</span>
+                                <input
+                                  type="text"
+                                  class="mono"
+                                  .value=${state.agentDraft.workspace}
+                                  ?disabled=${state.saving}
+                                  @input=${(event: Event) =>
+                                    props.onGenericChannelAccountEditorAgentFieldChange?.(
+                                      "workspace",
+                                      (event.target as HTMLInputElement).value,
+                                    )}
+                                />
+                              </label>
+                            </div>
+                          `
+                        : nothing
+                    }
+                  </div>
+                `
+              : nothing
+          }
           <div class="generic-account-editor__options"></div>
           <div class="generic-account-editor__form">
             ${
@@ -1166,7 +1321,18 @@ function renderGenericChannelAccountEditorModal(props: ChannelsProps) {
           <button
             class="btn primary"
             ?disabled=${state.saving || props.configSchemaLoading}
-            @click=${props.onSaveGenericChannelAccountEditor}
+            @click=${() =>
+              props.onSaveGenericChannelAccountEditor(
+                state.mode === "create" && state.agentDraft?.enabled
+                  ? {
+                      createAgent: {
+                        id: state.agentDraft.id,
+                        name: state.agentDraft.name,
+                        workspace: state.agentDraft.workspace,
+                      },
+                    }
+                  : undefined,
+              )}
           >
             ${state.saving ? t("channels.actions.saving") : t("channels.actions.save")}
           </button>
@@ -1189,9 +1355,11 @@ function renderDingTalkAccountEditorModal(props: ChannelsProps) {
         <div class="channels-modal__head">
           <div>
             <div class="channels-modal__title">
-              ${state.mode === "create"
-                ? t("channels.dingtalk.editorCreateTitle")
-                : t("channels.dingtalk.editorEditTitle")}
+              ${
+                state.mode === "create"
+                  ? t("channels.dingtalk.editorCreateTitle")
+                  : t("channels.dingtalk.editorEditTitle")
+              }
             </div>
             <div class="channels-modal__sub">${t("channels.dingtalk.editor.leadDesc")}</div>
           </div>
@@ -1463,9 +1631,11 @@ function renderDingTalkAccountEditorModal(props: ChannelsProps) {
                 <span>${t("channels.dingtalk.editor.fieldSessionScope")}</span>
                 <input
                   type="text"
-                  .value=${state.values.sessionScope
-                    ? localizeScopeValue(state.values.sessionScope)
-                    : t("channels.dingtalk.editor.sessionScopeInherit")}
+                  .value=${
+                    state.values.sessionScope
+                      ? localizeScopeValue(state.values.sessionScope)
+                      : t("channels.dingtalk.editor.sessionScopeInherit")
+                  }
                   disabled
                 />
                 <small>${t("channels.dingtalk.editor.fieldSessionScopeHelp")}</small>
@@ -1657,7 +1827,8 @@ function renderAccountEditorSelect(
           )}
       >
         ${options.map(
-          (opt) => html`<option value=${opt.value} ?selected=${values[field] === opt.value}>${opt.label}</option>`,
+          (opt) =>
+            html`<option value=${opt.value} ?selected=${values[field] === opt.value}>${opt.label}</option>`,
         )}
       </select>
       ${config.help ? html`<small>${config.help}</small>` : nothing}
@@ -1683,9 +1854,11 @@ function renderEditorProgressPill(label: string, ready: boolean) {
     <div class="dingtalk-editor-progress ${ready ? "dingtalk-editor-progress--ok" : ""}">
       <span class="dingtalk-editor-progress__label">${label}</span>
       <span class="dingtalk-editor-progress__state">
-        ${ready
-          ? t("channels.dingtalk.editor.progressReady")
-          : t("channels.dingtalk.editor.progressPending")}
+        ${
+          ready
+            ? t("channels.dingtalk.editor.progressReady")
+            : t("channels.dingtalk.editor.progressPending")
+        }
       </span>
     </div>
   `;
@@ -1770,7 +1943,7 @@ function resolveDingTalkEditorReadiness(values: DingTalkAccountEditorValues) {
   const basicReady = Boolean(values.accountId.trim() && values.agentId.trim());
   const credentialsReady = Boolean(
     (values.appKey.trim() && values.appSecret.trim()) ||
-      (values.clientId.trim() && values.clientSecret.trim()),
+    (values.clientId.trim() && values.clientSecret.trim()),
   );
   const callbackReady = Boolean(values.callbackBaseUrl.trim());
   const readyCount = [basicReady, credentialsReady, callbackReady].filter(Boolean).length;
@@ -1819,8 +1992,7 @@ function resolveSelectedChannelKey(
 function countConnectedAccounts(snapshot: ChannelsStatusSnapshot | null): number {
   return Object.values(snapshot?.channelAccounts ?? {})
     .flat()
-    .filter((account) => account.connected || account.running)
-    .length;
+    .filter((account) => account.connected || account.running).length;
 }
 
 function countActiveAccounts(accounts: ChannelAccountSnapshot[]): number {
@@ -1838,8 +2010,10 @@ function buildChannelListEntries(params: {
     const channelLabel = resolveChannelLabel(props.snapshot, channel.key);
     const accounts = props.snapshot?.channelAccounts?.[channel.key] ?? [];
     const channelLogs = logsByChannel.get(channel.key) ?? [];
-    const status =
-      (props.snapshot?.channels?.[channel.key] ?? null) as Record<string, unknown> | null;
+    const status = (props.snapshot?.channels?.[channel.key] ?? null) as Record<
+      string,
+      unknown
+    > | null;
     const supportsGenericEditor = supportsGenericChannelAccountEditor(
       configSchema,
       props,
@@ -1873,59 +2047,6 @@ function buildChannelListEntries(params: {
   });
 }
 
-function renderChannelDirectory(params: {
-  orderedChannels: OrderedChannel[];
-  selectedChannelKey: ChannelKey;
-  props: ChannelsProps;
-  logsByChannel: Map<string, LogEntry[]>;
-}) {
-  const { orderedChannels, selectedChannelKey, props, logsByChannel } = params;
-  return html`
-    <aside class="card channels-directory">
-      <div class="card-title">${t("channels.page.directoryTitle")}</div>
-      <div class="card-sub">${t("channels.page.directorySubtitle")}</div>
-      <div class="list channels-directory__list">
-        ${orderedChannels.map((channel) => {
-          const label = resolveChannelLabel(props.snapshot, channel.key);
-          const accounts = props.snapshot?.channelAccounts?.[channel.key] ?? [];
-          const channelLogs = logsByChannel.get(channel.key) ?? [];
-          const status =
-            (props.snapshot?.channels?.[channel.key] ?? null) as Record<string, unknown> | null;
-          const activeAccounts = accounts.filter((account) => account.connected || account.running);
-          const isSelected = channel.key === selectedChannelKey;
-          const stateLabel = resolveChannelStateSummary(channel.key, status, accounts);
-          return html`
-            <button
-              type="button"
-              class="channels-directory__button ${isSelected ? "channels-directory__button--selected" : ""}"
-              @click=${() => props.onSelectChannel(channel.key)}
-            >
-              <div class="list-item list-item-clickable channels-directory__item ${isSelected ? "list-item-selected" : ""}">
-                <div class="list-main">
-                  <div class="channels-directory__title-row">
-                    <div class="list-title">${label}</div>
-                    <span class="channels-state-badge channels-state-badge--${resolveStateTone(stateLabel)}">
-                      ${stateLabel}
-                    </span>
-                  </div>
-                  <div class="list-sub">
-                    ${channel.enabled ? t("common.enabled") : t("common.disabled")} ·
-                    ${accounts.length} ${t("channels.page.accountsLabel")} ·
-                    ${activeAccounts.length} ${t("channels.page.connectedAccounts")}
-                  </div>
-                </div>
-                <div class="channels-directory__meta">
-                  <span class="chip">${channelLogs.length} ${t("channels.page.monitoredLogs")}</span>
-                </div>
-              </div>
-            </button>
-          `;
-        })}
-      </div>
-    </aside>
-  `;
-}
-
 export function filterChannelLogs(
   entries: LogEntry[],
   channelKey: ChannelKey,
@@ -1945,12 +2066,7 @@ export function filterChannelLogs(
     nostr: ["nostr"],
   };
   const keywords = new Set(
-    [
-      channelKey,
-      meta?.label,
-      meta?.detailLabel,
-      ...(presetKeywords[channelKey] ?? []),
-    ]
+    [channelKey, meta?.label, meta?.detailLabel, ...(presetKeywords[channelKey] ?? [])]
       .filter(Boolean)
       .map((value) => String(value).toLowerCase()),
   );
@@ -2013,12 +2129,11 @@ function resolveSelectedChannelAccount(
 }
 
 function resolveChannelOrder(snapshot: ChannelsStatusSnapshot | null): ChannelKey[] {
-  const base =
-    snapshot?.channelMeta?.length
-      ? snapshot.channelMeta.map((entry) => entry.id)
-      : snapshot?.channelOrder?.length
-        ? snapshot.channelOrder
-        : ["whatsapp", "telegram", "discord", "googlechat", "slack", "signal", "imessage", "nostr"];
+  const base = snapshot?.channelMeta?.length
+    ? snapshot.channelMeta.map((entry) => entry.id)
+    : snapshot?.channelOrder?.length
+      ? snapshot.channelOrder
+      : ["whatsapp", "telegram", "discord", "googlechat", "slack", "signal", "imessage", "nostr"];
   return Array.from(new Set([...PRIORITY_CHANNEL_IDS, ...base]));
 }
 
@@ -2039,8 +2154,7 @@ function renderChannel(
       return renderDingTalkCard({
         channelId: key,
         props,
-        status:
-          (props.snapshot?.channels?.[key] ?? null) as Record<string, unknown> | null,
+        status: (props.snapshot?.channels?.[key] ?? null) as Record<string, unknown> | null,
         accounts: data.channelAccounts?.[key] ?? [],
         accountCountLabel,
         logCount: context.logCount,
@@ -2231,22 +2345,138 @@ function resolveChannelMetaMap(
   return base;
 }
 
+function isExactRouteBinding(binding: JsonRecord, match: JsonRecord): boolean {
+  const type = asString(binding.type);
+  if (type && type !== "route") {
+    return false;
+  }
+  const keys = Object.keys(match);
+  return keys.length > 0 && keys.every((key) => key === "channel" || key === "accountId");
+}
+
+function resolveDefaultAgentSummary(
+  configForm: Record<string, unknown> | null,
+): BoundAgentSummary | null {
+  const agentsRoot = asRecord(configForm?.agents);
+  const agentEntries = Array.isArray(agentsRoot?.list)
+    ? agentsRoot.list
+        .map((entry) => asRecord(entry))
+        .filter((entry): entry is JsonRecord => Boolean(entry))
+    : [];
+  const explicitDefaultAgentId = asString(agentsRoot?.defaultId);
+  const defaultAgentEntry =
+    agentEntries.find((entry) => entry.default === true) ??
+    agentEntries.find(
+      (entry) => normalizeLookup(asString(entry.id)) === normalizeLookup(explicitDefaultAgentId),
+    ) ??
+    agentEntries[0] ??
+    null;
+  const defaultAgentId = explicitDefaultAgentId ?? asString(defaultAgentEntry?.id);
+  if (!defaultAgentId) {
+    return null;
+  }
+  return {
+    id: defaultAgentId,
+    label: asString(defaultAgentEntry?.name) ?? asString(defaultAgentEntry?.id) ?? defaultAgentId,
+    source: "default",
+  };
+}
+
+function resolveAgentLabelFromConfig(
+  configForm: Record<string, unknown> | null,
+  agentId: string,
+): string {
+  const agentsRoot = asRecord(configForm?.agents);
+  const agentEntries = Array.isArray(agentsRoot?.list)
+    ? agentsRoot.list
+        .map((entry) => asRecord(entry))
+        .filter((entry): entry is JsonRecord => Boolean(entry))
+    : [];
+  const match = agentEntries.find(
+    (entry) => normalizeLookup(asString(entry.id)) === normalizeLookup(agentId),
+  );
+  return asString(match?.name) ?? asString(match?.id) ?? agentId;
+}
+
+function resolveBoundAgentSummary(
+  configForm: Record<string, unknown> | null,
+  channelId: string,
+  accountId: string,
+): BoundAgentSummary | null {
+  const bindings = Array.isArray((configForm as { bindings?: unknown[] } | null)?.bindings)
+    ? ((configForm as { bindings?: unknown[] }).bindings ?? [])
+    : [];
+  const matchedBinding = bindings.find((entry) => {
+    const binding = asRecord(entry);
+    const match = asRecord(binding?.match);
+    const agentId = asString(binding?.agentId);
+    if (!binding || !match || !agentId || !isExactRouteBinding(binding, match)) {
+      return false;
+    }
+    return (
+      normalizeLookup(asString(match.channel)) === normalizeLookup(channelId) &&
+      normalizeLookup(asString(match.accountId)) === normalizeLookup(accountId)
+    );
+  });
+  const bindingRecord = asRecord(matchedBinding);
+  const exactAgentId = asString(bindingRecord?.agentId);
+  if (exactAgentId) {
+    return {
+      id: exactAgentId,
+      label: resolveAgentLabelFromConfig(configForm, exactAgentId),
+      source: "exact",
+    };
+  }
+  return resolveDefaultAgentSummary(configForm);
+}
+
+function renderBoundAgentSummary(summary: BoundAgentSummary | null) {
+  if (!summary) {
+    return html`<span class="channels-table__sub">${t("common.na")}</span>`;
+  }
+  const sourceLabel =
+    summary.source === "exact"
+      ? t("channels.page.tableBoundAgentExact")
+      : t("channels.page.tableBoundAgentDefault");
+  const showId = normalizeLookup(summary.label) !== normalizeLookup(summary.id);
+  return html`
+    <div class="channels-table__binding">
+      <div class="channels-table__name">${summary.label}</div>
+      ${showId ? html`<div class="channels-table__sub mono">${summary.id}</div>` : nothing}
+      <div>
+        <span
+          class="channels-state-badge channels-state-badge--${summary.source === "exact" ? "ok" : "muted"}"
+        >
+          ${sourceLabel}
+        </span>
+      </div>
+    </div>
+  `;
+}
+
 function resolveChannelLabel(snapshot: ChannelsStatusSnapshot | null, key: string): string {
   const meta = resolveChannelMetaMap(snapshot)[key];
   return meta?.label ?? snapshot?.channelLabels?.[key] ?? key;
 }
 
-function resolveChannelSelectionLabel(snapshot: ChannelsStatusSnapshot | null, key: string): string {
+function resolveChannelSelectionLabel(
+  snapshot: ChannelsStatusSnapshot | null,
+  key: string,
+): string {
   const meta = resolveChannelMetaMap(snapshot)[key];
-  return meta?.selectionLabel ?? meta?.detailLabel ?? meta?.label ?? snapshot?.channelLabels?.[key] ?? key;
+  return (
+    meta?.selectionLabel ??
+    meta?.detailLabel ??
+    meta?.label ??
+    snapshot?.channelLabels?.[key] ??
+    key
+  );
 }
 
 function resolveChannelDetailLabel(snapshot: ChannelsStatusSnapshot | null, key: string): string {
   const meta = resolveChannelMetaMap(snapshot)[key];
   return (
-    meta?.detailLabel ??
-    snapshot?.channelDetailLabels?.[key] ??
-    resolveChannelLabel(snapshot, key)
+    meta?.detailLabel ?? snapshot?.channelDetailLabels?.[key] ?? resolveChannelLabel(snapshot, key)
   );
 }
 
@@ -2418,7 +2648,9 @@ function renderGenericAccount(account: ChannelAccountSnapshot) {
     ? t("channels.generic.secretConfiguredHidden")
     : t("channels.generic.secretMissing");
   const dmPolicy = account.dmPolicy ? localizePolicyValue(account.dmPolicy) : t("common.na");
-  const groupPolicy = account.groupPolicy ? localizePolicyValue(account.groupPolicy) : t("common.na");
+  const groupPolicy = account.groupPolicy
+    ? localizePolicyValue(account.groupPolicy)
+    : t("common.na");
   const sessionScope = account.sessionScopeSummary ?? account.dmScope ?? null;
   const showDmIsolationWarning =
     typeof account.dmScope === "string" &&
@@ -2440,7 +2672,9 @@ function renderGenericAccount(account: ChannelAccountSnapshot) {
     },
     {
       label: t("channels.labels.lastInbound"),
-      value: account.lastInboundAt ? formatRelativeTimestamp(account.lastInboundAt) : t("common.na"),
+      value: account.lastInboundAt
+        ? formatRelativeTimestamp(account.lastInboundAt)
+        : t("common.na"),
     },
   ] as const;
 
@@ -2461,9 +2695,9 @@ function renderGenericAccount(account: ChannelAccountSnapshot) {
             showClientSecretState
               ? html`
                   <span
-                    class="channels-state-badge channels-state-badge--${account.clientSecretConfigured
-                      ? "ok"
-                      : "muted"}"
+                    class="channels-state-badge channels-state-badge--${
+                      account.clientSecretConfigured ? "ok" : "muted"
+                    }"
                   >
                     ${clientSecretState}
                   </span>

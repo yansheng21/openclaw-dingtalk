@@ -1,3 +1,4 @@
+import type { DingTalkPreviewResult } from "../controllers/channels.ts";
 import type {
   ChannelAccountSnapshot,
   ChannelsStatusSnapshot,
@@ -14,7 +15,6 @@ import type {
   LogEntry,
 } from "../types.ts";
 import type { NostrProfileFormState } from "./channels.nostr-profile-form.ts";
-import type { DingTalkPreviewResult } from "../controllers/channels.ts";
 
 export type ChannelKey = string;
 export type ChannelsPageView = "list" | "detail";
@@ -22,12 +22,7 @@ export type DingTalkViewMode = "details" | "config";
 export type DingTalkAccountEditorMode = "create" | "edit";
 export type DingTalkAccountEditorSensitiveField = "appSecret" | "clientSecret";
 export type GenericChannelAccountEditorMode = "create" | "edit";
-export type ChannelListStatusFilter =
-  | "all"
-  | "connected"
-  | "configured"
-  | "pending"
-  | "disabled";
+export type ChannelListStatusFilter = "all" | "connected" | "configured" | "pending" | "disabled";
 
 export type DingTalkAccountEditorValues = {
   accountId: string;
@@ -67,6 +62,15 @@ export type GenericChannelAccountEditorState = {
   accountId: string;
   setAsDefault: boolean;
   values: Record<string, unknown>;
+  agentDraft?: {
+    enabled: boolean;
+    id: string;
+    name: string;
+    workspace: string;
+    autoId: boolean;
+    autoName: boolean;
+    autoWorkspace: boolean;
+  } | null;
   saving: boolean;
   error: string | null;
 };
@@ -142,6 +146,11 @@ export type ChannelsProps = {
   onGenericChannelAccountEditorAccountIdChange: (value: string) => void;
   onGenericChannelAccountEditorDefaultChange: (value: boolean) => void;
   onGenericChannelAccountEditorPatch: (path: Array<string | number>, value: unknown) => void;
+  onGenericChannelAccountEditorCreateAgentToggle?: (value: boolean) => void;
+  onGenericChannelAccountEditorAgentFieldChange?: (
+    field: "id" | "name" | "workspace",
+    value: string,
+  ) => void;
   onDingTalkAccountEditorFieldChange: (
     field: keyof DingTalkAccountEditorValues,
     value: string | boolean,
@@ -151,7 +160,13 @@ export type ChannelsProps = {
   ) => void;
   onSaveDingTalkAccountEditor: () => void;
   onDeleteDingTalkAccount: (accountId: string) => void;
-  onSaveGenericChannelAccountEditor: () => void;
+  onSaveGenericChannelAccountEditor: (options?: {
+    createAgent?: {
+      id: string;
+      name?: string;
+      workspace: string;
+    } | null;
+  }) => void;
   onDeleteGenericChannelAccount: (channelId: string, accountId: string) => void;
   onLogsRefresh: () => void;
   onLogsAutoFollowChange: (next: boolean) => void;

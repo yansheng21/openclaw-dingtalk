@@ -361,6 +361,135 @@ describe("channels regressions", () => {
     expect(text).toContain("未单独限制（继承上层策略）");
   });
 
+  it("shows the currently bound agent for channel instances", () => {
+    const container = document.createElement("div");
+    const props: ChannelsProps = {
+      ...createChannelsProps(),
+      pageView: "detail",
+      selectedChannelId: "dingtalk-connector",
+      selectedChannelAccountId: null,
+      configForm: {
+        agents: {
+          defaultId: "main",
+          list: [
+            { id: "main", name: "默认助手" },
+            { id: "fengqingxia", name: "蜂擎侠" },
+          ],
+        },
+        bindings: [
+          {
+            agentId: "fengqingxia",
+            match: {
+              channel: "dingtalk-connector",
+              accountId: "corp-main",
+            },
+          },
+        ],
+      },
+      snapshot: {
+        ts: 1,
+        channelOrder: ["dingtalk-connector"],
+        channelLabels: {
+          "dingtalk-connector": "钉钉",
+        },
+        channels: {
+          "dingtalk-connector": {
+            configured: true,
+            connected: true,
+          },
+        },
+        channelAccounts: {
+          "dingtalk-connector": [
+            {
+              accountId: "corp-main",
+              name: "企业钉钉",
+              displayName: "蜂擎侠实例",
+              configured: true,
+              connected: true,
+            },
+          ],
+        },
+        channelDefaultAccountId: {
+          "dingtalk-connector": "corp-main",
+        },
+      },
+    };
+
+    render(renderChannels(props), container);
+
+    const text = container.textContent ?? "";
+    expect(text).toContain("当前绑定 Agent");
+    expect(text).toContain("蜂擎侠");
+    expect(text).toContain("精确绑定");
+  });
+
+  it("shows the bound agent in the instance detail modal and hides create actions there", () => {
+    const container = document.createElement("div");
+    const props: ChannelsProps = {
+      ...createChannelsProps(),
+      pageView: "detail",
+      selectedChannelId: "dingtalk-connector",
+      selectedChannelAccountId: "corp-main",
+      configForm: {
+        agents: {
+          defaultId: "main",
+          list: [
+            { id: "main", name: "默认助手" },
+            { id: "fengqingxia", name: "蜂擎侠" },
+          ],
+        },
+        bindings: [
+          {
+            agentId: "fengqingxia",
+            match: {
+              channel: "dingtalk-connector",
+              accountId: "corp-main",
+            },
+          },
+        ],
+      },
+      snapshot: {
+        ts: 1,
+        channelOrder: ["dingtalk-connector"],
+        channelLabels: {
+          "dingtalk-connector": "钉钉",
+        },
+        channels: {
+          "dingtalk-connector": {
+            configured: true,
+            connected: true,
+            running: true,
+          },
+        },
+        channelAccounts: {
+          "dingtalk-connector": [
+            {
+              accountId: "corp-main",
+              name: "企业钉钉",
+              displayName: "蜂擎侠实例",
+              configured: true,
+              connected: true,
+              running: true,
+            },
+          ],
+        },
+        channelDefaultAccountId: {
+          "dingtalk-connector": "corp-main",
+        },
+      },
+    };
+
+    render(renderChannels(props), container);
+
+    const modal = container.querySelector(".channels-modal--detail");
+    expect(modal).toBeTruthy();
+    const text = modal?.textContent ?? "";
+    expect(text).toContain("当前绑定 Agent");
+    expect(text).toContain("蜂擎侠");
+    expect(text).toContain("精确绑定");
+    expect(text).not.toContain("新增实例");
+  });
+
   it("shows the instance list before DingTalk detail even when only one robot exists", () => {
     const container = document.createElement("div");
     const props: ChannelsProps = {
@@ -593,15 +722,70 @@ describe("channels regressions", () => {
     render(renderChannels(props), container);
 
     expect(container.textContent ?? "").toContain("显示名称");
-    expect(container.querySelector<HTMLInputElement>('input[placeholder="总部审批机器人"]')?.value).toBe(
-      "运维机器人",
-    );
+    expect(
+      container.querySelector<HTMLInputElement>('input[placeholder="总部审批机器人"]')?.value,
+    ).toBe("运维机器人");
 
-    const saveButton = container.querySelector<HTMLButtonElement>(".channels-modal__actions .btn.primary");
+    const saveButton = container.querySelector<HTMLButtonElement>(
+      ".channels-modal__actions .btn.primary",
+    );
     saveButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await Promise.resolve();
 
     expect(onSaveGenericChannelAccountEditor).toHaveBeenCalledTimes(1);
+  });
+
+  it("can save a new instance with an auto-created agent draft", async () => {
+    const container = document.createElement("div");
+    const onSaveGenericChannelAccountEditor = vi.fn();
+    const onGenericChannelAccountEditorCreateAgentToggle = vi.fn();
+    const onGenericChannelAccountEditorAgentFieldChange = vi.fn();
+    const props: ChannelsProps = {
+      ...createChannelsProps(),
+      genericChannelAccountEditorState: {
+        channelId: "dingtalk-connector",
+        mode: "create",
+        originalAccountId: null,
+        accountId: "xiaolong",
+        setAsDefault: false,
+        values: {
+          displayName: "小龙",
+          clientId: "cid",
+        },
+        agentDraft: {
+          enabled: true,
+          id: "xiaolong",
+          name: "小龙",
+          workspace: "/tmp/workspace-xiaolong",
+          autoId: true,
+          autoName: true,
+          autoWorkspace: true,
+        },
+        saving: false,
+        error: null,
+      },
+      onSaveGenericChannelAccountEditor,
+      onGenericChannelAccountEditorCreateAgentToggle,
+      onGenericChannelAccountEditorAgentFieldChange,
+    };
+
+    render(renderChannels(props), container);
+
+    expect(container.textContent ?? "").toContain("同时创建独立 Agent 并绑定当前实例");
+
+    const saveButton = container.querySelector<HTMLButtonElement>(
+      ".channels-modal__actions .btn.primary",
+    );
+    saveButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    await Promise.resolve();
+
+    expect(onSaveGenericChannelAccountEditor).toHaveBeenCalledWith({
+      createAgent: {
+        id: "xiaolong",
+        name: "小龙",
+        workspace: "/tmp/workspace-xiaolong",
+      },
+    });
   });
 
   it("prioritizes create-instance actions when entering a channel instance list", () => {
@@ -871,7 +1055,9 @@ describe("channels regressions", () => {
 
     render(renderChannels(props), container);
 
-    const saveButton = container.querySelector<HTMLButtonElement>(".channels-modal__actions .btn.primary");
+    const saveButton = container.querySelector<HTMLButtonElement>(
+      ".channels-modal__actions .btn.primary",
+    );
     saveButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await Promise.resolve();
     await Promise.resolve();
@@ -917,7 +1103,9 @@ describe("channels regressions", () => {
 
     render(renderChannels(props), container);
 
-    const saveButton = container.querySelector<HTMLButtonElement>(".channels-modal__actions .btn.primary");
+    const saveButton = container.querySelector<HTMLButtonElement>(
+      ".channels-modal__actions .btn.primary",
+    );
     saveButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     await Promise.resolve();
     await Promise.resolve();
@@ -964,14 +1152,20 @@ describe("channels regressions", () => {
     expect(text).toContain("高级回调接入先准备三块内容");
     expect(text).toContain("当前仅展示该账号生效的会话范围");
     const callbackItems = container.querySelectorAll(".dingtalk-editor-callbacks__item");
-    const sessionScopeSelect = Array.from(container.querySelectorAll("select")).find(
-      (select) => select.previousElementSibling?.textContent?.includes("会话范围"),
+    const sessionScopeSelect = Array.from(container.querySelectorAll("select")).find((select) =>
+      select.previousElementSibling?.textContent?.includes("会话范围"),
     );
     expect(sessionScopeSelect).toBeUndefined();
     expect(callbackItems).toHaveLength(3);
-    expect(text).toContain("https://gateway.example.com/webhooks/dingtalk/accounts/corp-main/messages");
-    expect(text).toContain("https://gateway.example.com/webhooks/dingtalk/accounts/corp-main/cards/actions");
-    expect(text).toContain("https://gateway.example.com/webhooks/dingtalk/accounts/corp-main/oa/events");
+    expect(text).toContain(
+      "https://gateway.example.com/webhooks/dingtalk/accounts/corp-main/messages",
+    );
+    expect(text).toContain(
+      "https://gateway.example.com/webhooks/dingtalk/accounts/corp-main/cards/actions",
+    );
+    expect(text).toContain(
+      "https://gateway.example.com/webhooks/dingtalk/accounts/corp-main/oa/events",
+    );
   });
 
   it("keeps Client Secret visible in the DingTalk editor", () => {
@@ -1012,9 +1206,9 @@ describe("channels regressions", () => {
     const revealButtons = Array.from(
       container.querySelectorAll<HTMLButtonElement>('.field__reveal[aria-label="显示值"]'),
     );
-    const clientSecretInput = Array.from(container.querySelectorAll<HTMLInputElement>("input")).find(
-      (input) => input.value === "client-secret",
-    );
+    const clientSecretInput = Array.from(
+      container.querySelectorAll<HTMLInputElement>("input"),
+    ).find((input) => input.value === "client-secret");
 
     expect(revealButtons).toHaveLength(1);
     expect(clientSecretInput).toBeDefined();
