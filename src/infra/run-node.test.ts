@@ -38,6 +38,10 @@ function expectedBuildSpawn() {
   return [process.execPath, "scripts/tsdown-build.mjs", "--no-clean"];
 }
 
+function expectedUiBuildSpawn() {
+  return [process.execPath, "scripts/ui.js", "build"];
+}
+
 describe("run-node script", () => {
   it.runIf(process.platform !== "win32")(
     "preserves control-ui assets by building with tsdown --no-clean",
@@ -162,6 +166,87 @@ describe("run-node script", () => {
       ).resolves.toContain(
         '"extensions": [\n      "./src/index.js",\n      "./nested/entry.js"\n    ]',
       );
+    });
+  });
+
+  it("rebuilds control-ui when local ui sources are newer than the built control-ui bundle", async () => {
+    await withTempDir(async (tmp) => {
+      const srcPath = path.join(tmp, "src", "index.ts");
+      const uiEntryPath = path.join(tmp, "ui", "src", "main.ts");
+      const uiIndexSourcePath = path.join(tmp, "ui", "index.html");
+      const uiPackagePath = path.join(tmp, "ui", "package.json");
+      const uiViteConfigPath = path.join(tmp, "ui", "vite.config.ts");
+      const distEntryPath = path.join(tmp, "dist", "entry.js");
+      const controlUiIndexPath = path.join(tmp, "dist", "control-ui", "index.html");
+      const buildStampPath = path.join(tmp, "dist", ".buildstamp");
+      const tsconfigPath = path.join(tmp, "tsconfig.json");
+      const packageJsonPath = path.join(tmp, "package.json");
+      const tsdownConfigPath = path.join(tmp, "tsdown.config.ts");
+      await writeRuntimePostBuildScaffold(tmp);
+      await fs.mkdir(path.dirname(srcPath), { recursive: true });
+      await fs.mkdir(path.dirname(uiEntryPath), { recursive: true });
+      await fs.mkdir(path.dirname(distEntryPath), { recursive: true });
+      await fs.mkdir(path.dirname(controlUiIndexPath), { recursive: true });
+      await fs.writeFile(srcPath, "export const value = 1;\n", "utf-8");
+      await fs.writeFile(uiEntryPath, "console.log('ui');\n", "utf-8");
+      await fs.writeFile(uiIndexSourcePath, "<!doctype html>\n", "utf-8");
+      await fs.writeFile(uiPackagePath, '{"name":"openclaw-control-ui"}\n', "utf-8");
+      await fs.writeFile(uiViteConfigPath, "export default {};\n", "utf-8");
+      await fs.writeFile(tsconfigPath, "{}\n", "utf-8");
+      await fs.writeFile(packageJsonPath, '{"name":"openclaw-test"}\n', "utf-8");
+      await fs.writeFile(tsdownConfigPath, "export default {};\n", "utf-8");
+      await fs.writeFile(distEntryPath, "console.log('built');\n", "utf-8");
+      await fs.writeFile(controlUiIndexPath, "<html>old-ui</html>\n", "utf-8");
+      await fs.writeFile(buildStampPath, '{"head":"abc123"}\n', "utf-8");
+
+      const oldTime = new Date("2026-03-13T10:00:00.000Z");
+      const stampTime = new Date("2026-03-13T12:00:00.000Z");
+      const newUiTime = new Date("2026-03-13T12:00:01.000Z");
+      await fs.utimes(srcPath, oldTime, oldTime);
+      await fs.utimes(tsconfigPath, oldTime, oldTime);
+      await fs.utimes(packageJsonPath, oldTime, oldTime);
+      await fs.utimes(tsdownConfigPath, oldTime, oldTime);
+      await fs.utimes(distEntryPath, stampTime, stampTime);
+      await fs.utimes(controlUiIndexPath, stampTime, stampTime);
+      await fs.utimes(buildStampPath, stampTime, stampTime);
+      await fs.utimes(uiIndexSourcePath, oldTime, oldTime);
+      await fs.utimes(uiPackagePath, oldTime, oldTime);
+      await fs.utimes(uiViteConfigPath, oldTime, oldTime);
+      await fs.utimes(uiEntryPath, newUiTime, newUiTime);
+
+      const spawnCalls: string[][] = [];
+      const spawn = (cmd: string, args: string[]) => {
+        spawnCalls.push([cmd, ...args]);
+        return createExitedProcess(0);
+      };
+      const spawnSync = (cmd: string, args: string[]) => {
+        if (cmd === "git" && args[0] === "rev-parse") {
+          return { status: 0, stdout: "abc123\n" };
+        }
+        if (cmd === "git" && args[0] === "status") {
+          return { status: 0, stdout: "" };
+        }
+        return { status: 1, stdout: "" };
+      };
+
+      const exitCode = await runNodeMain({
+        cwd: tmp,
+        args: ["status"],
+        env: {
+          ...process.env,
+          OPENCLAW_RUNNER_LOG: "0",
+        },
+        spawn,
+        spawnSync,
+        execPath: process.execPath,
+        platform: process.platform,
+      });
+
+      expect(exitCode).toBe(0);
+      expect(spawnCalls).toEqual([
+        expectedUiBuildSpawn(),
+        [process.execPath, "openclaw.mjs", "status"],
+      ]);
     });
   });
 

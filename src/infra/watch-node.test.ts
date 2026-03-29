@@ -45,6 +45,9 @@ describe("watch-node script", () => {
     ];
     expect(watchPaths).toEqual(runNodeWatchedPaths);
     expect(watchPaths).toContain("extensions");
+    expect(watchPaths).toContain("ui/src");
+    expect(watchPaths).toContain("ui/public");
+    expect(watchPaths).toContain("ui/index.html");
     expect(watchPaths).toContain("tsdown.config.ts");
     expect(watchOptions.ignoreInitial).toBe(true);
     expect(watchOptions.ignored("src/infra/watch-node.test.ts")).toBe(true);
@@ -55,6 +58,9 @@ describe("watch-node script", () => {
     expect(watchOptions.ignored("extensions/voice-call/package.json")).toBe(false);
     expect(watchOptions.ignored("extensions/voice-call/index.ts")).toBe(false);
     expect(watchOptions.ignored("extensions/voice-call/src/runtime.ts")).toBe(false);
+    expect(watchOptions.ignored("ui/src/ui/views/config.browser.test.ts")).toBe(true);
+    expect(watchOptions.ignored("ui/src/ui/views/config.ts")).toBe(false);
+    expect(watchOptions.ignored("ui/public/favicon.svg")).toBe(false);
     expect(watchOptions.ignored("src/infra/watch-node.ts")).toBe(false);
     expect(watchOptions.ignored("tsconfig.json")).toBe(false);
 

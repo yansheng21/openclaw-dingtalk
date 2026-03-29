@@ -11,9 +11,22 @@ const compilerArgs = [buildScript, "--no-clean"];
 
 const runNodeSourceRoots = ["src", "extensions"];
 const runNodeConfigFiles = ["tsconfig.json", "package.json", "tsdown.config.ts"];
-export const runNodeWatchedPaths = [...runNodeSourceRoots, ...runNodeConfigFiles];
+const runNodeUiSourceRoots = ["ui/src", "ui/public"];
+const runNodeUiConfigFiles = [
+  "ui/index.html",
+  "ui/package.json",
+  "ui/vite.config.ts",
+  "scripts/ui.js",
+];
+export const runNodeWatchedPaths = [
+  ...runNodeSourceRoots,
+  ...runNodeConfigFiles,
+  ...runNodeUiSourceRoots,
+  ...runNodeUiConfigFiles,
+];
 const extensionSourceFilePattern = /\.(?:[cm]?[jt]sx?)$/;
 const extensionRestartMetadataFiles = new Set(["openclaw.plugin.json", "package.json"]);
+const uiTestFilePattern = /\.test\.[cm]?[jt]sx?$/;
 
 const normalizePath = (filePath) => String(filePath ?? "").replaceAll("\\", "/");
 
@@ -29,6 +42,30 @@ const isIgnoredSourcePath = (relativePath) => {
 const isBuildRelevantSourcePath = (relativePath) => {
   const normalizedPath = normalizePath(relativePath);
   return extensionSourceFilePattern.test(normalizedPath) && !isIgnoredSourcePath(normalizedPath);
+};
+
+const isIgnoredUiPath = (repoPath) => {
+  const normalizedPath = normalizePath(repoPath);
+  return (
+    normalizedPath.includes("/__screenshots__/") ||
+    normalizedPath.includes("/test-helpers/") ||
+    normalizedPath.includes("/.vitest-attachments/") ||
+    uiTestFilePattern.test(path.posix.basename(normalizedPath))
+  );
+};
+
+const isUiBuildRelevantRunNodePath = (repoPath) => {
+  const normalizedPath = normalizePath(repoPath).replace(/^\.\/+/, "");
+  if (runNodeUiConfigFiles.includes(normalizedPath)) {
+    return true;
+  }
+  if (normalizedPath.startsWith("ui/public/")) {
+    return true;
+  }
+  if (normalizedPath.startsWith("ui/src/")) {
+    return !isIgnoredUiPath(normalizedPath);
+  }
+  return false;
 };
 
 export const isBuildRelevantRunNodePath = (repoPath) => {
@@ -55,6 +92,9 @@ const isRestartRelevantExtensionPath = (relativePath) => {
 
 export const isRestartRelevantRunNodePath = (repoPath) => {
   const normalizedPath = normalizePath(repoPath).replace(/^\.\/+/, "");
+  if (isUiBuildRelevantRunNodePath(normalizedPath)) {
+    return true;
+  }
   if (runNodeConfigFiles.includes(normalizedPath)) {
     return true;
   }
@@ -210,6 +250,52 @@ const hasSourceMtimeChanged = (stampMtime, deps) => {
   return latestSourceMtime != null && latestSourceMtime > stampMtime;
 };
 
+const isExcludedUiSource = (filePath, sourceRoot, sourceRootName) => {
+  const relativePath = normalizePath(path.relative(sourceRoot, filePath));
+  if (relativePath.startsWith("..")) {
+    return false;
+  }
+  return !isUiBuildRelevantRunNodePath(path.posix.join(sourceRootName, relativePath));
+};
+
+const hasUiProject = (deps) =>
+  deps.uiSourceRoots.some((sourceRoot) => deps.fs.existsSync(sourceRoot.path)) ||
+  deps.uiConfigFiles.some((filePath) => deps.fs.existsSync(filePath));
+
+const hasUiSourceMtimeChanged = (uiStampMtime, deps) => {
+  let latestUiMtime = null;
+  for (const sourceRoot of deps.uiSourceRoots) {
+    const sourceMtime = findLatestMtime(
+      sourceRoot.path,
+      (candidate) => isExcludedUiSource(candidate, sourceRoot.path, sourceRoot.name),
+      deps,
+    );
+    if (sourceMtime != null && (latestUiMtime == null || sourceMtime > latestUiMtime)) {
+      latestUiMtime = sourceMtime;
+    }
+  }
+
+  for (const filePath of deps.uiConfigFiles) {
+    const mtime = statMtime(filePath, deps.fs);
+    if (mtime != null && (latestUiMtime == null || mtime > latestUiMtime)) {
+      latestUiMtime = mtime;
+    }
+  }
+
+  return latestUiMtime != null && latestUiMtime > uiStampMtime;
+};
+
+const shouldBuildUi = (deps) => {
+  if (!hasUiProject(deps)) {
+    return false;
+  }
+  const uiIndexMtime = statMtime(deps.controlUiIndexPath, deps.fs);
+  if (uiIndexMtime == null) {
+    return true;
+  }
+  return hasUiSourceMtimeChanged(uiIndexMtime, deps);
+};
+
 const shouldBuild = (deps) => {
   if (deps.env.OPENCLAW_FORCE_BUILD === "1") {
     return true;
@@ -276,6 +362,31 @@ const runOpenClaw = async (deps) => {
   return res.exitCode ?? 1;
 };
 
+const runControlUiBuild = async (deps) => {
+  logRunner("Building Control UI (dist/control-ui is stale).", deps);
+  const uiBuild = deps.spawn(deps.execPath, ["scripts/ui.js", "build"], {
+    cwd: deps.cwd,
+    env: deps.env,
+    stdio: "inherit",
+  });
+  const res = await new Promise((resolve) => {
+    uiBuild.on("exit", (exitCode, exitSignal) => {
+      resolve({ exitCode, exitSignal });
+    });
+  });
+  if (res.exitSignal) {
+    return 1;
+  }
+  return res.exitCode ?? 1;
+};
+
+const ensureControlUiBuilt = async (deps) => {
+  if (!shouldBuildUi(deps)) {
+    return 0;
+  }
+  return await runControlUiBuild(deps);
+};
+
 const syncRuntimeArtifacts = (deps) => {
   try {
     runRuntimePostBuild({ cwd: deps.cwd });
@@ -318,15 +429,25 @@ export async function runNodeMain(params = {}) {
   deps.distRoot = path.join(deps.cwd, "dist");
   deps.distEntry = path.join(deps.distRoot, "/entry.js");
   deps.buildStampPath = path.join(deps.distRoot, ".buildstamp");
+  deps.controlUiIndexPath = path.join(deps.distRoot, "control-ui", "index.html");
   deps.sourceRoots = runNodeSourceRoots.map((sourceRoot) => ({
     name: sourceRoot,
     path: path.join(deps.cwd, sourceRoot),
   }));
+  deps.uiSourceRoots = runNodeUiSourceRoots.map((sourceRoot) => ({
+    name: sourceRoot,
+    path: path.join(deps.cwd, sourceRoot),
+  }));
   deps.configFiles = runNodeConfigFiles.map((filePath) => path.join(deps.cwd, filePath));
+  deps.uiConfigFiles = runNodeUiConfigFiles.map((filePath) => path.join(deps.cwd, filePath));
 
   if (!shouldBuild(deps)) {
     if (!syncRuntimeArtifacts(deps)) {
       return 1;
+    }
+    const controlUiBuildResult = await ensureControlUiBuilt(deps);
+    if (controlUiBuildResult !== 0) {
+      return controlUiBuildResult;
     }
     return await runOpenClaw(deps);
   }
@@ -353,6 +474,10 @@ export async function runNodeMain(params = {}) {
     return 1;
   }
   writeBuildStamp(deps);
+  const controlUiBuildResult = await ensureControlUiBuilt(deps);
+  if (controlUiBuildResult !== 0) {
+    return controlUiBuildResult;
+  }
   return await runOpenClaw(deps);
 }
 

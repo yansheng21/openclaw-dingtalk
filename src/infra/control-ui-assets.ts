@@ -36,6 +36,25 @@ export async function resolveControlUiDistIndexHealth(
   };
 }
 
+function findControlUiRepoRootFromDir(startDir: string): string | null {
+  let dir = path.resolve(startDir);
+  for (let i = 0; i < 8; i++) {
+    if (
+      fs.existsSync(path.join(dir, "package.json")) &&
+      fs.existsSync(path.join(dir, "ui", "vite.config.ts"))
+    ) {
+      return dir;
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) {
+      break;
+    }
+    dir = parent;
+  }
+
+  return null;
+}
+
 export function resolveControlUiRepoRoot(
   argv1: string | undefined = process.argv[1],
 ): string | null {
@@ -52,22 +71,7 @@ export function resolveControlUiRepoRoot(
     }
   }
 
-  let dir = path.dirname(normalized);
-  for (let i = 0; i < 8; i++) {
-    if (
-      fs.existsSync(path.join(dir, "package.json")) &&
-      fs.existsSync(path.join(dir, "ui", "vite.config.ts"))
-    ) {
-      return dir;
-    }
-    const parent = path.dirname(dir);
-    if (parent === dir) {
-      break;
-    }
-    dir = parent;
-  }
-
-  return null;
+  return findControlUiRepoRootFromDir(path.dirname(normalized));
 }
 
 export async function resolveControlUiDistIndexPath(
@@ -118,7 +122,8 @@ export async function resolveControlUiDistIndexPath(
         try {
           const raw = fs.readFileSync(pkgJsonPath, "utf-8");
           const parsed = JSON.parse(raw) as { name?: unknown };
-          if (CORE_PACKAGE_NAMES.has(String(parsed.name ?? ""))) {
+          const packageName = typeof parsed.name === "string" ? parsed.name : "";
+          if (CORE_PACKAGE_NAMES.has(packageName)) {
             return fs.existsSync(indexPath) ? indexPath : null;
           }
           // Stop at the first package boundary to avoid resolving through unrelated ancestors.
@@ -191,6 +196,9 @@ export function resolveControlUiRootSync(opts: ControlUiRootResolveOptions = {})
   const argv1 = opts.argv1 ?? process.argv[1];
   const cwd = opts.cwd ?? process.cwd();
   const moduleDir = opts.moduleUrl ? path.dirname(fileURLToPath(opts.moduleUrl)) : null;
+  const cwdRepoRoot = findControlUiRepoRootFromDir(cwd);
+  const argv1RepoRoot = argv1 ? resolveControlUiRepoRoot(argv1) : null;
+  const moduleRepoRoot = moduleDir ? findControlUiRepoRootFromDir(moduleDir) : null;
   const argv1Dir = argv1 ? path.dirname(path.resolve(argv1)) : null;
   const argv1RealpathDir = (() => {
     if (!argv1) {
@@ -215,6 +223,11 @@ export function resolveControlUiRootSync(opts: ControlUiRootResolveOptions = {})
     moduleUrl: opts.moduleUrl,
     cwd,
   });
+
+  // Prefer a locally checked-out repo UI when running from a dev workspace.
+  addCandidate(candidates, cwdRepoRoot ? path.join(cwdRepoRoot, "dist", "control-ui") : null);
+  addCandidate(candidates, argv1RepoRoot ? path.join(argv1RepoRoot, "dist", "control-ui") : null);
+  addCandidate(candidates, moduleRepoRoot ? path.join(moduleRepoRoot, "dist", "control-ui") : null);
 
   // Packaged app: control-ui lives alongside the executable.
   addCandidate(candidates, execDir ? path.join(execDir, "control-ui") : null);

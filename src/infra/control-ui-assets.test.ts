@@ -226,6 +226,28 @@ describe("control UI assets helpers (fs-mocked)", () => {
     expect(resolveControlUiRootSync({ argv1: wrapperArgv1 })).toBe(uiDir);
   });
 
+  it("prefers repo-local control-ui assets from cwd over package-resolved assets", () => {
+    const localRoot = abs("fixtures/local-repo");
+    const localUiDir = path.join(localRoot, "dist", "control-ui");
+    const packageRoot = abs("fixtures/openclaw-package-root");
+    const packageUiDir = path.join(packageRoot, "dist", "control-ui");
+
+    setFile(path.join(localRoot, "package.json"), JSON.stringify({ name: "workspace-root" }));
+    setFile(path.join(localRoot, "ui", "vite.config.ts"), "export {};\n");
+    setFile(path.join(localUiDir, "index.html"), "<html>local</html>\n");
+    setFile(path.join(packageUiDir, "index.html"), "<html>package</html>\n");
+    (
+      openclawRoot.resolveOpenClawPackageRootSync as unknown as ReturnType<typeof vi.fn>
+    ).mockReturnValueOnce(packageRoot);
+
+    expect(
+      resolveControlUiRootSync({
+        argv1: path.join(packageRoot, "dist", "index.js"),
+        cwd: localRoot,
+      }),
+    ).toBe(localUiDir);
+  });
+
   it("detects package-proven control-ui roots", () => {
     const pkgRoot = abs("fixtures/openclaw-package-root");
     const uiDir = path.join(pkgRoot, "dist", "control-ui");
