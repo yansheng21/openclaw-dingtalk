@@ -1,87 +1,123 @@
 # DingClaw
 
-`DingClaw` 是一个面向企业场景的 OpenClaw 增强版，目标是把 AI 助手真正接入钉钉工作流，而不是只做一个能聊天的机器人。
+<p align="center">
+  <img src="./assets/readme-hero.svg" alt="DingClaw hero" width="100%" />
+</p>
 
-当前仓库基于 OpenClaw 上游源码初始化，后续重点补齐这些能力：
+<p align="center">
+  <img alt="npm" src="https://img.shields.io/npm/v/openclaw-dingtalk?style=flat-square" />
+  <img alt="node" src="https://img.shields.io/badge/node-%3E%3D22.16-43853d?style=flat-square&logo=node.js&logoColor=white" />
+  <img alt="pnpm" src="https://img.shields.io/badge/pnpm-10.x-F69220?style=flat-square&logo=pnpm&logoColor=white" />
+  <img alt="license" src="https://img.shields.io/github/license/yansheng21/openclaw-dingtalk?style=flat-square" />
+</p>
 
-- 钉钉企业机器人接入
-- 群聊 `@机器人` 触发与会话路由
-- 企业身份识别、租户隔离、权限策略
-- OA 审批 / 内部 API / 浏览器自动化工具接入
-- 中文化管理控制台
-- 中转 API 配置能力（自定义 `baseURL`、`apiKey`、模型与推理强度）
-- 审计、审批、工具调用留痕
+`DingClaw` 是一个面向企业场景的 OpenClaw 增强版，重点不是“再做一个聊天机器人”，而是把 AI 助手真正接进钉钉工作流、组织身份、权限策略、审批治理、知识同步和工具执行闭环。
 
-## 仓库定位
+它保留 OpenClaw 作为执行内核，同时补上企业真正需要的控制平面能力：
 
-这个仓库不是重新发明一个助手内核，而是在尽量少改 OpenClaw 核心的前提下，构建一套可持续演进的企业层。
+- 多账号钉钉接入与会话隔离
+- 多 Agent 独立工作区、独立身份、独立技能边界
+- 中文管理控制台
+- 多模型配置、模型路由与 fallback
+- 钉钉知识库同步到 Agent 工作区
+- 工具调用审批、留痕与审计
+- 面向自托管部署的 npm 安装和 GitHub Releases 发布链路
 
-约束原则：
+## 为什么是 DingClaw
 
-- `upstream` 保持指向官方 OpenClaw，便于后续持续合并升级
-- 企业能力优先放在 `apps/`、`packages/`、`extensions/`
-- 对 OpenClaw 核心的改动尽量收敛，并记录在 `patches/openclaw-core/`
+普通“企业机器人”常见的问题是：
 
-## 目录结构
+- 只能收消息，不能识别“是谁、在哪个群、用什么身份在说话”
+- 只能接一个模型，无法治理模型、工具和风险边界
+- 知识库、审批、内部 API、浏览器执行各自割裂
+- 出问题之后无法还原“谁让机器人做了什么”
+- 一旦上游升级，私改内核会越来越难维护
+
+`DingClaw` 的目标是把这些问题系统化收口：
+
+- `Identity First`：先识别身份和场景，再决定路由、人格和权限
+- `Policy First`：工具、数据范围、审批、Agent 选择全部走规则
+- `Chinese Operator Experience`：后台、配置、状态、知识同步界面默认中文
+- `Minimal Core Patch`：尽量少改 OpenClaw 核心，把企业能力收敛到扩展层和外围服务
+
+## 一图看懂
+
+<p align="center">
+  <img src="./assets/readme-architecture.svg" alt="DingClaw architecture" width="100%" />
+</p>
+
+这套架构可以简单理解为两层：
+
+- 控制平面：负责身份、策略、审批、审计、模型注册和管理台
+- 执行平面：负责 OpenClaw Gateway、Agent Runtime、工具执行、知识同步和工作区
+
+换句话说，OpenClaw 解决“怎么跑”，DingClaw 解决“谁能跑、跑什么、要不要审批、怎么审计”。
+
+## 当前仓库已经具备什么
+
+这不是一份空蓝图仓库。当前代码已经包含一批可以直接落地的企业化改动：
+
+- 中文控制台，包含配置、代理、技能、知识源、实例、聊天、日志等页面
+- `/config` 根页的配置概览入口和模型关系概览
+- 多 Agent 独立工作区与独立 `BOOTSTRAP.md`
+- 多模型配置能力，支持主模型、白名单、推理强度和 fallback 路由
+- 钉钉知识库同步到指定 Agent 工作区的 `memory/dingtalk-kb`
+- 代理上下文视图，可查看知识源归属和同步结果
+- 桌面壳 `desktop-shell`，可启动或附着本地 Gateway
+- npm 安装、CLI 安装脚本、GitHub Release 自动发布流程
+
+## 运行形态
+
+仓库中的几个关键表面如下：
+
+| 表面 | 作用 |
+| --- | --- |
+| `Gateway` | 唯一长驻运行时，负责 WebSocket、HTTP、消息接入、Agent 调用、控制台静态资源 |
+| `Control UI` | Web 管理台，中文优先，负责配置、状态、代理、技能、知识源管理 |
+| `Desktop Shell` | Electron 壳，负责本地启动 / 附着 Gateway，并快速打开管理端 |
+| `Agents` | 每个 Agent 都可以拥有独立工作区、身份、技能、知识缓存 |
+| `DingTalk Connectors` | 多账号钉钉机器人接入、知识库同步、消息收发与会话隔离 |
+| `Enterprise Services` | 身份、策略、审批、审计、模型注册等企业能力 |
+
+## 仓库结构
 
 ```text
 apps/
-  admin-console/         中文管理控制台
+  admin-console/         管理端表面
   control-api/           控制面 API
   runtime-api/           运行时桥接 API
-  jobs/                  异步任务与同步作业
+  desktop-shell/         Electron 桌面壳
+  jobs/                  异步任务和同步作业
 
 packages/
   shared-types/          共享类型
-  shared-config/         配置装载与校验
-  database/              数据库访问层
-  identity-service/      用户身份映射与画像
+  shared-config/         配置读取与校验
+  database/              数据访问层
+  identity-service/      身份映射与画像
   policy-engine/         权限策略引擎
-  approval-service/      审批编排
-  audit-service/         审计留痕
+  approval-service/      审批流
+  audit-service/         审计与证据
   runtime-bridge/        与 OpenClaw Runtime 的桥接
-  model-registry/        模型与中转 API 注册表
+  model-registry/        模型和中转配置
 
 extensions/
   dingtalk-enterprise/   钉钉企业扩展
-  oa-tools/              OA / 审批相关工具
-  internal-api-tools/    企业内部 API 工具
+  dingtalk-connector/    钉钉接入与知识同步
 
-docs/
-  architecture/          仓库内架构说明
-  blueprint/             产品级蓝图与实施方案
+ui/
+  src/                   控制台前端
+
+src/
+  gateway/               OpenClaw Gateway 及服务端方法
+  infra/                 运行时基础设施
 ```
 
-## 已有蓝图
-
-首批产品与技术蓝图已经放入仓库：
-
-- `docs/blueprint/01-product-overview.md`
-- `docs/blueprint/02-system-architecture.md`
-- `docs/blueprint/03-identity-and-policy.md`
-- `docs/blueprint/04-data-model.md`
-- `docs/blueprint/05-repo-and-deployment.md`
-- `docs/blueprint/06-roadmap.md`
-- `docs/blueprint/07-admin-console-ia.md`
-- `docs/blueprint/08-api-boundaries.md`
-- `docs/blueprint/09-database-erd.md`
-- `docs/blueprint/10-repo-skeleton.md`
-- `docs/blueprint/11-package-boundaries.md`
-- `docs/blueprint/12-mvp-build-slices.md`
-- `docs/blueprint/13-risk-register.md`
-
-建议先从这三份开始：
-
-- `docs/blueprint/01-product-overview.md`
-- `docs/blueprint/02-system-architecture.md`
-- `docs/blueprint/12-mvp-build-slices.md`
-
-## 初始化
+## 快速开始
 
 推荐环境：
 
-- Node `24.x`
-- `pnpm`
+- Node `22.16+`
+- `pnpm 10.x`
 
 安装依赖：
 
@@ -89,11 +125,33 @@ docs/
 pnpm install
 ```
 
-CLI 本地开发：
+本地开发构建控制台：
 
 ```bash
-pnpm openclaw --version
+pnpm ui:build
 ```
+
+启动 Gateway：
+
+```bash
+pnpm openclaw gateway --port 18789 --verbose
+```
+
+打开控制台：
+
+```text
+http://127.0.0.1:18789/
+```
+
+启动桌面壳：
+
+```bash
+pnpm desktop:dev
+```
+
+当前仓库已经补了一个实用改动：当 Gateway 通过本地开发脚本自动拉起时，会优先使用当前仓库里构建出来的 `dist/control-ui`，不再优先吃旧的包内静态资源；`ui/**` 发生改动时，也会自动触发 `ui:build`。
+
+## CLI / npm 安装
 
 全局安装发布包：
 
@@ -112,46 +170,21 @@ npm install -g openclaw-dingtalk
 curl -fsSL https://raw.githubusercontent.com/yansheng21/openclaw-dingtalk/main/scripts/install.sh | bash
 ```
 
-CLI 优先安装：
+仅安装 CLI：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/yansheng21/openclaw-dingtalk/main/scripts/install-cli.sh | bash
 ```
 
-后续执行顺序建议：
+## 发布与 Releases
 
-1. 先完成工作区依赖安装与构建校验
-2. 再落第一批企业基础包：`shared-config`、`database`、`identity-service`
-3. 然后补 `dingtalk-enterprise` 接入并正式拆分 `desktop-shell` / `admin-console`
-4. 最后接 OA、审批、浏览器能力和审计闭环
-
-## 远端策略
-
-- `upstream`: `https://github.com/openclaw/openclaw.git`
-- `origin`: 你的 DingClaw 私有 / 自有仓库
-
-## 说明
-
-本仓库当前仍处于企业化初始化阶段，已经具备：
-
-- 上游基线代码
-- 企业目录骨架
-- 产品级蓝图文档
-
-接下来的工作重点是把蓝图逐步变成可运行的控制面、运行时和钉钉扩展。
-
-## 发布说明
+当前仓库已经补齐了一条面向 fork 的发布链路：
 
 - npm 包名：`openclaw-dingtalk`
 - GitHub 仓库：`https://github.com/yansheng21/openclaw-dingtalk`
-- 推荐发布标签：`vYYYY.M.D` 或 `vYYYY.M.D-beta.N`
+- 推荐标签：`vYYYY.M.D` 或 `vYYYY.M.D-beta.N`
 
-当前仓库已补齐两条发布链路：
-
-- 推送版本标签后，会执行 npm 发布预检查并自动创建 GitHub Release
-- 通过 GitHub Actions 手动触发 `DingClaw NPM Release`，可将指定 tag 发布到 npm
-
-GitHub Release 会附带这些资产：
+发布后会自动生成 GitHub Release，并附带这些资产：
 
 - `npm pack` 生成的 tarball
 - `install.sh`
@@ -159,4 +192,35 @@ GitHub Release 会附带这些资产：
 - `install.ps1`
 - `SHA256SUMS.txt`
 
-如果要真正发布到 npm，还需要在该仓库对应的 npm package 上开启 trusted publishing，并把 GitHub 仓库绑定到包 `openclaw-dingtalk`。
+如果要真正发布到 npm，还需要在对应 package 上开启 trusted publishing，并把 GitHub 仓库绑定到 `openclaw-dingtalk`。
+
+## 设计原则
+
+- `API First`：能走正式 API 的流程不走浏览器自动化
+- `Identity First`：先确认说话人，再决定路由和回答边界
+- `Policy First`：工具、模型、审批、数据范围都通过策略决定
+- `Secure by Default`：默认白名单、默认审计、默认可控
+- `Upgradeable Fork`：保留 `upstream`，尽量降低长期跟随 OpenClaw 升级的成本
+
+## 蓝图与后续方向
+
+仓库里已经放了完整的企业化蓝图，建议优先看这三份：
+
+- `docs/blueprint/01-product-overview.md`
+- `docs/blueprint/02-system-architecture.md`
+- `docs/blueprint/12-mvp-build-slices.md`
+
+其他蓝图还包括：
+
+- 产品总览、系统架构、身份与策略
+- 数据模型、包边界、API 边界
+- 管理台信息架构、数据库 ERD
+- MVP 切片、风险登记和路线图
+
+## 远端策略
+
+- `upstream`: `https://github.com/openclaw/openclaw.git`
+- `target`: `https://github.com/yansheng21/openclaw-dingtalk.git`
+- `origin`: 你的日常开发仓库
+
+这种结构的目标很直接：既保留对上游 OpenClaw 的跟进能力，也把企业化演进沉淀到自己的 fork 和发布链路里。

@@ -1,0 +1,88 @@
+<svg width="1200" height="640" viewBox="0 0 1200 640" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="640" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F172A"/>
+      <stop offset="0.55" stop-color="#102A43"/>
+      <stop offset="1" stop-color="#164E63"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#F8FAFC" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#E2E8F0" stop-opacity="0.06"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#22C55E"/>
+      <stop offset="1" stop-color="#06B6D4"/>
+    </linearGradient>
+    <filter id="shadow" x="-20" y="-20" width="1240" height="680" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="24" flood-color="#020617" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="640" rx="28" fill="url(#bg)"/>
+  <circle cx="1020" cy="118" r="180" fill="#22C55E" fill-opacity="0.10"/>
+  <circle cx="930" cy="520" r="210" fill="#38BDF8" fill-opacity="0.12"/>
+  <circle cx="215" cy="102" r="130" fill="#F59E0B" fill-opacity="0.10"/>
+
+  <g filter="url(#shadow)">
+    <rect x="54" y="54" width="1092" height="532" rx="28" fill="url(#panel)" stroke="#FFFFFF" stroke-opacity="0.18"/>
+  </g>
+
+  <text x="90" y="122" fill="#93C5FD" font-family="Arial, sans-serif" font-size="20" font-weight="700" letter-spacing="2">DINGCLAW ENTERPRISE GATEWAY</text>
+  <text x="90" y="210" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="64" font-weight="700">DingClaw</text>
+  <text x="90" y="262" fill="#E2E8F0" font-family="Arial, sans-serif" font-size="28" font-weight="500">Enterprise AI control plane built on OpenClaw, designed for DingTalk workflows.</text>
+  <text x="90" y="318" fill="#CBD5E1" font-family="Arial, sans-serif" font-size="22">Identity-aware routing, multi-agent workspaces, knowledge sync, approval gates, audit trails,</text>
+  <text x="90" y="350" fill="#CBD5E1" font-family="Arial, sans-serif" font-size="22">Chinese operator console, model relay configuration, and controlled tool execution.</text>
+
+  <rect x="90" y="395" width="208" height="60" rx="16" fill="url(#accent)"/>
+  <text x="121" y="433" fill="#082F49" font-family="Arial, sans-serif" font-size="24" font-weight="700">OpenClaw Kernel</text>
+  <rect x="314" y="395" width="202" height="60" rx="16" fill="#F8FAFC" fill-opacity="0.09" stroke="#FFFFFF" stroke-opacity="0.20"/>
+  <text x="346" y="433" fill="#E2E8F0" font-family="Arial, sans-serif" font-size="24" font-weight="700">DingTalk Focus</text>
+
+  <g transform="translate(680 116)">
+    <rect width="170" height="84" rx="18" fill="#0F766E" fill-opacity="0.72" stroke="#FFFFFF" stroke-opacity="0.16"/>
+    <text x="28" y="38" fill="#ECFEFF" font-family="Arial, sans-serif" font-size="24" font-weight="700">Control UI</text>
+    <text x="28" y="62" fill="#CCFBF1" font-family="Arial, sans-serif" font-size="15">Chinese operator console</text>
+  </g>
+
+  <g transform="translate(876 116)">
+    <rect width="170" height="84" rx="18" fill="#1D4ED8" fill-opacity="0.72" stroke="#FFFFFF" stroke-opacity="0.16"/>
+    <text x="34" y="38" fill="#EFF6FF" font-family="Arial, sans-serif" font-size="24" font-weight="700">Gateway</text>
+    <text x="23" y="62" fill="#DBEAFE" font-family="Arial, sans-serif" font-size="15">Routing and runtime core</text>
+  </g>
+
+  <g transform="translate(650 236)">
+    <rect width="170" height="84" rx="18" fill="#7C3AED" fill-opacity="0.62" stroke="#FFFFFF" stroke-opacity="0.16"/>
+    <text x="45" y="38" fill="#F5F3FF" font-family="Arial, sans-serif" font-size="24" font-weight="700">Agents</text>
+    <text x="22" y="62" fill="#EDE9FE" font-family="Arial, sans-serif" font-size="15">Per-agent identity + files</text>
+  </g>
+
+  <g transform="translate(846 236)">
+    <rect width="170" height="84" rx="18" fill="#BE185D" fill-opacity="0.60" stroke="#FFFFFF" stroke-opacity="0.16"/>
+    <text x="28" y="38" fill="#FDF2F8" font-family="Arial, sans-serif" font-size="24" font-weight="700">Knowledge</text>
+    <text x="19" y="62" fill="#FCE7F3" font-family="Arial, sans-serif" font-size="15">Sync to agent workspace</text>
+  </g>
+
+  <g transform="translate(650 356)">
+    <rect width="170" height="84" rx="18" fill="#A16207" fill-opacity="0.68" stroke="#FFFFFF" stroke-opacity="0.16"/>
+    <text x="42" y="38" fill="#FFFBEB" font-family="Arial, sans-serif" font-size="24" font-weight="700">Policy</text>
+    <text x="24" y="62" fill="#FEF3C7" font-family="Arial, sans-serif" font-size="15">Routing, tools, approvals</text>
+  </g>
+
+  <g transform="translate(846 356)">
+    <rect width="170" height="84" rx="18" fill="#166534" fill-opacity="0.68" stroke="#FFFFFF" stroke-opacity="0.16"/>
+    <text x="26" y="38" fill="#F0FDF4" font-family="Arial, sans-serif" font-size="24" font-weight="700">Audit</text>
+    <text x="26" y="62" fill="#DCFCE7" font-family="Arial, sans-serif" font-size="15">Trace every critical step</text>
+  </g>
+
+  <g transform="translate(748 476)">
+    <rect width="170" height="66" rx="16" fill="#111827" fill-opacity="0.62" stroke="#FFFFFF" stroke-opacity="0.16"/>
+    <text x="28" y="41" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="22" font-weight="700">DingTalk + Tools</text>
+  </g>
+
+  <path d="M851 200V220" stroke="#BFDBFE" stroke-width="4" stroke-linecap="round"/>
+  <path d="M959 200V220" stroke="#BFDBFE" stroke-width="4" stroke-linecap="round"/>
+  <path d="M735 320V340" stroke="#DDD6FE" stroke-width="4" stroke-linecap="round"/>
+  <path d="M931 320V340" stroke="#FBCFE8" stroke-width="4" stroke-linecap="round"/>
+  <path d="M735 440V460" stroke="#FDE68A" stroke-width="4" stroke-linecap="round"/>
+  <path d="M931 440V460" stroke="#BBF7D0" stroke-width="4" stroke-linecap="round"/>
+</svg>
