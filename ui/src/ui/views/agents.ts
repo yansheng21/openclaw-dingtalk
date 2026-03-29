@@ -560,7 +560,7 @@ function renderCreateAgentDialog(
         ...Object.keys(props.channels.snapshot?.channelAccounts ?? {}),
       ].filter(Boolean),
     ),
-  ).sort((a, b) => a.localeCompare(b));
+  ).toSorted((a, b) => a.localeCompare(b));
   return html`
     <dialog
       class="agent-create-dialog"

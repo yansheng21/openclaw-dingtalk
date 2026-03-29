@@ -88,7 +88,7 @@ export function resumeExecution(requestId: string): {
 }
 
 export function listApprovalRequests(): ApprovalRequest[] {
-  return [...approvalRequests.values()].sort((left, right) => right.createdAt - left.createdAt);
+  return [...approvalRequests.values()].toSorted((left, right) => right.createdAt - left.createdAt);
 }
 
 export function resetApprovalRequestsForTest(): void {

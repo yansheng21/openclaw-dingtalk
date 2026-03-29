@@ -218,7 +218,7 @@ function omitInstanceScopedChannelSchema(
   if (schemaType(schema) !== "object" || !options.supportsAccounts) {
     return schema;
   }
-  const nextProperties = { ...(schema.properties ?? {}) };
+  const nextProperties = { ...schema.properties };
   for (const key of MULTI_INSTANCE_ROOT_CREDENTIAL_FIELDS) {
     delete nextProperties[key];
   }

@@ -570,7 +570,7 @@ function createCronProps(): CronProps {
 
 function renderText(template: unknown): string {
   const container = document.createElement("div");
-  render(template as Parameters<typeof render>[0], container);
+  render(template, container);
   return container.textContent ?? "";
 }
 
@@ -984,7 +984,7 @@ describe("view localization", () => {
           outputRootDir: "/tmp/beta/memory/dingtalk-kb",
           workspaces: [
             {
-              ...createKnowledgeProps().dataResult!.workspaces[0]!,
+              ...createKnowledgeProps().dataResult!.workspaces[0],
               accountId: "relay-main",
             },
           ],

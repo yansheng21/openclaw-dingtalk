@@ -134,7 +134,7 @@ describe("channels regressions", () => {
 
     render(renderChannels(props), container);
 
-    const row = container.querySelector(".channels-table__row") as HTMLDivElement | null;
+    const row = container.querySelector(".channels-table__row");
     expect(row).not.toBeNull();
     expect(row?.children.item(3)?.textContent?.trim()).toBe("账号 (1)");
   });

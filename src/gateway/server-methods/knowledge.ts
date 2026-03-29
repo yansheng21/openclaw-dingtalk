@@ -807,7 +807,7 @@ async function listSyncedKnowledgeData(params: {
   const lastSyncedAt = workspaces
     .map((entry) => entry.syncedAt)
     .filter((entry): entry is string => Boolean(entry))
-    .sort((left, right) => Date.parse(right) - Date.parse(left))[0];
+    .toSorted((left, right) => Date.parse(right) - Date.parse(left))[0];
 
   return {
     agentId: params.agentId,
@@ -927,7 +927,7 @@ class DingtalkConnectorKnowledgeBaseClient {
     try {
       return parseResponseBody(raw) as T;
     } catch (error) {
-      throw new Error(`${params.method} ${url.pathname} returned invalid JSON: ${toErrorMessage(error)}`);
+      throw new Error(`${params.method} ${url.pathname} returned invalid JSON: ${toErrorMessage(error)}`, { cause: error });
     }
   }
 
@@ -1094,7 +1094,7 @@ class DingtalkConnectorKnowledgeBaseClient {
       method: "GET",
       headers: {
         Accept: "text/plain, text/markdown, application/json;q=0.8",
-        ...(headers ?? {}),
+        ...headers,
       },
     });
     if (!response.ok) {
@@ -1372,7 +1372,7 @@ function resolveDingtalkConnectorDefaultAccountId(channelConfig: JsonRecord): st
   const accountIds = Object.keys(accounts)
     .map((key) => normalizeAccountId(key))
     .filter(Boolean)
-    .sort((left, right) => left.localeCompare(right));
+    .toSorted((left, right) => left.localeCompare(right));
   if (accountIds.length === 0) {
     return DEFAULT_ACCOUNT_ID;
   }
@@ -1387,7 +1387,7 @@ async function resolveDingtalkConnectorAccount(
   requestedAccountId: string | undefined,
 ): Promise<ResolvedDingtalkConnectorAccount> {
   const channelConfig = isRecord(cfg.channels?.[DINGTALK_CONNECTOR_CHANNEL_ID])
-    ? (cfg.channels?.[DINGTALK_CONNECTOR_CHANNEL_ID] as JsonRecord)
+    ? (cfg.channels?.[DINGTALK_CONNECTOR_CHANNEL_ID])
     : {};
   const accounts = isRecord(channelConfig.accounts) ? channelConfig.accounts : {};
   const accountId = requestedAccountId

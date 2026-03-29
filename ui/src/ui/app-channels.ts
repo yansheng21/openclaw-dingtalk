@@ -110,7 +110,7 @@ function resolveNormalizedConfigSchema(schema: unknown): JsonSchema | null {
 }
 
 function resolveEditableConfigRoot(host: OpenClawApp): Record<string, unknown> | null {
-  return (host.configForm ?? host.configSnapshot?.config ?? null) as Record<string, unknown> | null;
+  return (host.configForm ?? host.configSnapshot?.config ?? null);
 }
 
 function channelSupportsGenericAccountEditor(host: OpenClawApp, channelId: string): boolean {
@@ -194,7 +194,7 @@ function resolveAccountRecord(
     (key) => normalizeUiAccountId(key) === normalizedTarget,
   );
   return matchedKey && isRecord(accounts[matchedKey])
-    ? (accounts[matchedKey] as Record<string, unknown>)
+    ? (accounts[matchedKey])
     : null;
 }
 
@@ -264,7 +264,7 @@ function resolveDingTalkEditorState(
   const defaults = defaultDingTalkEditorValues();
   const location = resolveChannelConfigLocation(host.configForm, "dingtalk-enterprise");
   const root = isRecord(location?.value) ? location.value : null;
-  const accounts = isRecord(root?.accounts) ? (root.accounts as Record<string, unknown>) : {};
+  const accounts = isRecord(root?.accounts) ? (root.accounts) : {};
   const targetAccountId = accountId?.trim() || host.channelsSelectedAccountId || "default";
   const accountConfig = resolveAccountRecord(accounts, targetAccountId);
   const values =
@@ -333,7 +333,7 @@ function resolveGenericChannelAccountEditorState(
   const configRoot = resolveEditableConfigRoot(host);
   const location = resolveChannelConfigLocation(configRoot, channelId);
   const root = isRecord(location?.value) ? location.value : {};
-  const accounts = isRecord(root.accounts) ? (root.accounts as Record<string, unknown>) : {};
+  const accounts = isRecord(root.accounts) ? (root.accounts) : {};
   const targetAccountId = accountId?.trim() || host.channelsSelectedAccountId || "";
   const accountConfig = resolveAccountRecord(accounts, targetAccountId) ?? {};
   const normalizedDefaultAccountId = normalizeUiAccountId(readString(root.defaultAccount));
@@ -524,7 +524,7 @@ export function toggleDingTalkAccountEditorSensitiveField(
   host.dingtalkAccountEditor = {
     ...state,
     revealedSensitiveFields: {
-      ...(state.revealedSensitiveFields ?? {}),
+      ...state.revealedSensitiveFields,
       [field]: !(state.revealedSensitiveFields?.[field] ?? false),
     },
   };
@@ -628,7 +628,7 @@ export async function saveGenericChannelAccountEditor(host: OpenClawApp) {
   }
 
   const baseConfig = cloneConfigObject(
-    (host.configForm ?? host.configSnapshot?.config ?? {}) as Record<string, unknown>,
+    (host.configForm ?? host.configSnapshot?.config ?? {}),
   );
   const values = cloneConfigObject(state.values);
   const channelLocation = resolveChannelConfigLocation(baseConfig, state.channelId);
@@ -639,7 +639,7 @@ export async function saveGenericChannelAccountEditor(host: OpenClawApp) {
       ? pruneDingtalkConnectorLegacyChannelFields(originalChannelValue)
       : originalChannelValue;
   const accounts = isRecord(channelValue.accounts)
-    ? (channelValue.accounts as Record<string, unknown>)
+    ? (channelValue.accounts)
     : {};
   const existing = accounts[normalizedAccountId];
   if (
@@ -749,13 +749,13 @@ export async function deleteGenericChannelAccount(
   }
 
   const baseConfig = cloneConfigObject(
-    (host.configForm ?? host.configSnapshot?.config ?? {}) as Record<string, unknown>,
+    (host.configForm ?? host.configSnapshot?.config ?? {}),
   );
   const channelLocation = resolveChannelConfigLocation(baseConfig, channelId);
   const channelPath = channelLocation?.path ?? target.channelPath;
   const channelValue = isRecord(channelLocation?.value) ? channelLocation.value : {};
   const accounts = isRecord(channelValue.accounts)
-    ? (channelValue.accounts as Record<string, unknown>)
+    ? (channelValue.accounts)
     : {};
   removePathValue(baseConfig, [...channelPath, "accounts", normalized]);
   const remainingAccountIds = Object.keys(accounts).filter((entry) => entry !== normalized);

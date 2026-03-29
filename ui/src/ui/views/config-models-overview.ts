@@ -667,7 +667,7 @@ export function renderConfigModelsOverview(props: RenderConfigModelsOverviewProp
   const routeOptions = uniqueStrings(
     catalog.allModels.map((model) => model.reference).filter((entry): entry is string => Boolean(entry)),
   )
-    .sort((a, b) => a.localeCompare(b))
+    .toSorted((a, b) => a.localeCompare(b))
     .map((ref) => {
       const match = catalog.byReference.get(ref);
       const label = match?.name

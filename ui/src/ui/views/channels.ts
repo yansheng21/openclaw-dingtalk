@@ -1108,7 +1108,7 @@ function renderGenericChannelAccountEditorModal(props: ChannelsProps) {
               <span>${t("channels.genericEditor.displayName")}</span>
               <input
                 type="text"
-                .value=${String((state.values as Record<string, unknown>).displayName ?? state.values.name ?? "")}
+                .value=${String((state.values).displayName ?? state.values.name ?? "")}
                 ?disabled=${state.saving}
                 placeholder="总部审批机器人"
                 @input=${(event: Event) =>

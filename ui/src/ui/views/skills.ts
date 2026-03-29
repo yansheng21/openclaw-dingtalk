@@ -337,7 +337,7 @@ export function renderSkills(props: SkillsProps) {
           .includes(filter),
       )
     : skills;
-  const orderedSkills = [...filtered].sort(compareSkills);
+  const orderedSkills = [...filtered].toSorted(compareSkills);
   const globalSummary = summarizeSkills(orderedSkills);
   const agentOptions = props.agentsList?.agents ?? [];
   const selectedAgentId =

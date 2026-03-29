@@ -571,7 +571,7 @@ function orderAgentFiles(files: AgentFileEntry[]): AgentFileEntry[] {
   const orderedNames = new Set(ordered.map((entry) => entry.name));
   const extras = files
     .filter((entry) => !orderedNames.has(entry.name))
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .toSorted((a, b) => a.name.localeCompare(b.name));
   return [...ordered, ...extras];
 }
 

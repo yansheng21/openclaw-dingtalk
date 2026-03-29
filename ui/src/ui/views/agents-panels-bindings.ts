@@ -262,7 +262,7 @@ export function renderAgentBindings(params: {
         ...details.exactBindings.map((binding) => binding.channel),
       ].filter(Boolean),
     ),
-  ).sort((a, b) => a.localeCompare(b));
+  ).toSorted((a, b) => a.localeCompare(b));
   const accountOptions = Array.from(
     new Set(
       [
@@ -274,7 +274,7 @@ export function renderAgentBindings(params: {
         ...details.exactBindings.map((binding) => binding.accountId),
       ].filter(Boolean),
     ),
-  ).sort((a, b) => a.localeCompare(b));
+  ).toSorted((a, b) => a.localeCompare(b));
   const disabled = !params.configForm || params.configLoading || params.configSaving;
 
   const openDialog = (

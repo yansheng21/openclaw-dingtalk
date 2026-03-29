@@ -7,7 +7,7 @@ import { renderChannelAccountConfigForm, renderChannelConfigForm } from "./chann
 
 function renderText(template: unknown): string {
   const container = document.createElement("div");
-  render(template as Parameters<typeof render>[0], container);
+  render(template, container);
   return container.textContent ?? "";
 }
 

@@ -465,7 +465,7 @@ function deriveLatestSyncSummary(
   if (!value || value.workspaces.length === 0) {
     return null;
   }
-  const sorted = [...value.workspaces].sort((left, right) => {
+  const sorted = [...value.workspaces].toSorted((left, right) => {
     const leftAt = Date.parse(left.syncedAt ?? "") || left.updatedAtMs;
     const rightAt = Date.parse(right.syncedAt ?? "") || right.updatedAtMs;
     return rightAt - leftAt;
