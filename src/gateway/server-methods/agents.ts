@@ -490,7 +490,8 @@ export const agentsHandlers: GatewayRequestHandlers = {
 
     const cfg = loadConfig();
     const rawName = String(params.name ?? "").trim();
-    const agentId = normalizeAgentId(rawName);
+    const explicitId = typeof params.id === "string" ? params.id.trim() : "";
+    const agentId = normalizeAgentId(explicitId || rawName);
     if (agentId === DEFAULT_AGENT_ID) {
       respond(
         false,

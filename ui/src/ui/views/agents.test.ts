@@ -191,7 +191,9 @@ describe("renderAgents", () => {
           channelOrder: ["telegram", "feishu"],
           channelLabels: {},
           channels: {},
-          channelAccounts: {},
+          channelAccounts: {
+            telegram: [{ accountId: "work", displayName: "工作号" }],
+          },
           channelDefaultAccountId: {},
         },
         loading: false,
@@ -225,27 +227,31 @@ describe("renderAgents", () => {
     const idInput = dialog?.querySelector<HTMLInputElement>("[data-agent-create-id]");
     const nameInput = dialog?.querySelector<HTMLInputElement>("[data-agent-create-name]");
     const workspaceInput = dialog?.querySelector<HTMLInputElement>("[data-agent-create-workspace]");
-    const bindingChannelInput = dialog?.querySelector<HTMLInputElement>(
+    const bindingChannelInput = dialog?.querySelector<HTMLSelectElement>(
       "[data-agent-create-binding-channel]",
     );
-    const bindingAccountInput = dialog?.querySelector<HTMLInputElement>(
+    const bindingAccountInput = dialog?.querySelector<HTMLSelectElement>(
       "[data-agent-create-binding-account]",
     );
     const form = dialog?.querySelector<HTMLFormElement>("form");
 
-    idInput!.value = "gamma";
-    idInput!.dispatchEvent(new Event("input", { bubbles: true }));
-    nameInput!.value = "Gamma";
-    workspaceInput!.value = "/tmp/openclaw/workspace-gamma";
     bindingChannelInput!.value = "telegram";
+    bindingChannelInput!.dispatchEvent(new Event("change", { bubbles: true }));
     bindingAccountInput!.value = "work";
+    bindingAccountInput!.dispatchEvent(new Event("change", { bubbles: true }));
+    await Promise.resolve();
+
+    expect(idInput!.value).toBe("work");
+    expect(nameInput!.value).toBe("工作号");
+    expect(workspaceInput!.value).toBe("/tmp/openclaw/workspace-work");
 
     form?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    await Promise.resolve();
 
     expect(onCreateAgent).toHaveBeenCalledWith({
-      id: "gamma",
-      name: "Gamma",
-      workspace: "/tmp/openclaw/workspace-gamma",
+      id: "work",
+      name: "工作号",
+      workspace: "/tmp/openclaw/workspace-work",
       makeDefault: false,
       binding: {
         channel: "telegram",
@@ -253,6 +259,146 @@ describe("renderAgents", () => {
       },
     });
     expect(dialog?.hasAttribute("open")).toBe(false);
+  });
+
+  it("shows channel account options from config and runtime snapshot", async () => {
+    const container = document.createElement("div");
+    render(
+      renderAgents(
+        createProps({
+          channels: {
+            snapshot: {
+              ts: 1,
+              channelOrder: ["dingtalk-connector"],
+              channelLabels: {},
+              channels: {},
+              channelAccounts: {
+                "dingtalk-connector": [{ accountId: "xiaolong", displayName: "小龙" }],
+              },
+              channelDefaultAccountId: {},
+            },
+            loading: false,
+            error: null,
+            lastSuccess: null,
+          },
+          config: {
+            form: {
+              agents: {
+                defaults: {
+                  workspace: "/tmp/openclaw/workspace",
+                },
+              },
+              channels: {
+                "dingtalk-connector": {
+                  accounts: {
+                    fengqingxia: { displayName: "蜂擎侠" },
+                    xiaolong: { displayName: "小龙" },
+                  },
+                },
+              },
+            },
+            loading: false,
+            saving: false,
+            dirty: false,
+          },
+        }),
+      ),
+      container,
+    );
+    await Promise.resolve();
+
+    container.querySelector<HTMLButtonElement>("[data-agent-create-open]")?.click();
+    await Promise.resolve();
+
+    const dialog = container.querySelector<HTMLDialogElement>("[data-agent-create-dialog]");
+    const channelSelect = dialog?.querySelector<HTMLSelectElement>(
+      "[data-agent-create-binding-channel]",
+    );
+    const accountSelect = dialog?.querySelector<HTMLSelectElement>(
+      "[data-agent-create-binding-account]",
+    );
+
+    channelSelect!.value = "dingtalk-connector";
+    channelSelect!.dispatchEvent(new Event("change", { bubbles: true }));
+
+    const values = Array.from(accountSelect?.querySelectorAll("option") ?? []).map((option) =>
+      option.getAttribute("value"),
+    );
+
+    expect(values).toContain("fengqingxia");
+    expect(values).toContain("xiaolong");
+  });
+
+  it("keeps manual agent fields when account selection changes", async () => {
+    const container = document.createElement("div");
+    render(
+      renderAgents(
+        createProps({
+          channels: {
+            snapshot: {
+              ts: 1,
+              channelOrder: ["dingtalk-connector"],
+              channelLabels: {},
+              channels: {},
+              channelAccounts: {
+                "dingtalk-connector": [
+                  { accountId: "fengqingxia", displayName: "蜂擎侠" },
+                  { accountId: "xiaolong", displayName: "小龙" },
+                ],
+              },
+              channelDefaultAccountId: {},
+            },
+            loading: false,
+            error: null,
+            lastSuccess: null,
+          },
+          config: {
+            form: {
+              agents: {
+                defaults: {
+                  workspace: "/tmp/openclaw/workspace",
+                },
+              },
+            },
+            loading: false,
+            saving: false,
+            dirty: false,
+          },
+        }),
+      ),
+      container,
+    );
+    await Promise.resolve();
+
+    container.querySelector<HTMLButtonElement>("[data-agent-create-open]")?.click();
+    await Promise.resolve();
+
+    const dialog = container.querySelector<HTMLDialogElement>("[data-agent-create-dialog]");
+    const idInput = dialog?.querySelector<HTMLInputElement>("[data-agent-create-id]");
+    const nameInput = dialog?.querySelector<HTMLInputElement>("[data-agent-create-name]");
+    const workspaceInput = dialog?.querySelector<HTMLInputElement>("[data-agent-create-workspace]");
+    const channelSelect = dialog?.querySelector<HTMLSelectElement>(
+      "[data-agent-create-binding-channel]",
+    );
+    const accountSelect = dialog?.querySelector<HTMLSelectElement>(
+      "[data-agent-create-binding-account]",
+    );
+
+    idInput!.value = "custom-agent";
+    idInput!.dispatchEvent(new Event("input", { bubbles: true }));
+    nameInput!.value = "自定义代理";
+    nameInput!.dispatchEvent(new Event("input", { bubbles: true }));
+    workspaceInput!.value = "/tmp/custom-workspace";
+    workspaceInput!.dispatchEvent(new Event("input", { bubbles: true }));
+
+    channelSelect!.value = "dingtalk-connector";
+    channelSelect!.dispatchEvent(new Event("change", { bubbles: true }));
+    accountSelect!.value = "xiaolong";
+    accountSelect!.dispatchEvent(new Event("change", { bubbles: true }));
+
+    expect(idInput!.value).toBe("custom-agent");
+    expect(nameInput!.value).toBe("自定义代理");
+    expect(workspaceInput!.value).toBe("/tmp/custom-workspace");
   });
 
   it("blocks duplicate agent ids in the create-agent dialog", async () => {
@@ -389,8 +535,8 @@ describe("renderAgents", () => {
     );
     await Promise.resolve();
 
-    const addButton = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find((button) =>
-      button.textContent?.includes("Add Binding"),
+    const addButton = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(
+      (button) => button.textContent?.includes("Add Binding"),
     );
     addButton?.click();
     await Promise.resolve();
@@ -447,8 +593,8 @@ describe("renderAgents", () => {
     );
     await Promise.resolve();
 
-    const addButton = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find((button) =>
-      button.textContent?.includes("Add Binding"),
+    const addButton = Array.from(container.querySelectorAll<HTMLButtonElement>("button")).find(
+      (button) => button.textContent?.includes("Add Binding"),
     );
     addButton?.click();
     await Promise.resolve();

@@ -456,6 +456,53 @@ export function renderApp(state: AppViewState) {
       removeConfigFormValue(state, ["bindings", nextBindingIndex, "comment"]);
     }
   };
+  const markDefaultAgentInConfig = (agentId: string) => {
+    const config = getCurrentConfigValue();
+    const list = (config as { agents?: { list?: unknown[] } } | null)?.agents?.list;
+    let found = false;
+    if (Array.isArray(list)) {
+      list.forEach((entry, index) => {
+        if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+          return;
+        }
+        const entryId =
+          "id" in entry && typeof (entry as { id?: unknown }).id === "string"
+            ? ((entry as { id: string }).id ?? "").trim()
+            : "";
+        if (!entryId) {
+          return;
+        }
+        if (entryId === agentId) {
+          updateConfigFormValue(state, ["agents", "list", index, "default"], true);
+          found = true;
+        } else {
+          removeConfigFormValue(state, ["agents", "list", index, "default"]);
+        }
+      });
+    }
+    if (!found) {
+      const index = ensureAgentIndex(agentId);
+      if (index >= 0) {
+        updateConfigFormValue(state, ["agents", "list", index, "default"], true);
+      }
+    }
+  };
+  const resetSelectedAgentPanels = () => {
+    state.agentsPanel = "overview";
+    state.agentFilesList = null;
+    state.agentFilesError = null;
+    state.agentFilesLoading = false;
+    state.agentFileActive = null;
+    state.agentFileContents = {};
+    state.agentFileDrafts = {};
+    state.agentSkillsReport = null;
+    state.agentSkillsError = null;
+    state.agentSkillsLoadingAgentId = null;
+    state.agentSkillsAgentId = null;
+    state.toolsCatalogResult = null;
+    state.toolsCatalogError = null;
+    state.toolsCatalogLoading = false;
+  };
   const cronAgentSuggestions = sortLocaleStrings(
     new Set(
       [
@@ -1593,7 +1640,7 @@ export function renderApp(state: AppViewState) {
                     if (!configValue) {
                       return;
                     }
-                    updateConfigFormValue(state, ["agents", "defaultId"], agentId);
+                    markDefaultAgentInConfig(agentId);
                     if (state.agentsList) {
                       state.agentsList = {
                         ...state.agentsList,
@@ -1619,78 +1666,48 @@ export function renderApp(state: AppViewState) {
                     }
                     removeConfigFormValue(state, ["bindings", bindingIndex]);
                   },
-                  onCreateAgent: ({ id, name, workspace, makeDefault, binding }) => {
-                    if (!configValue) {
-                      return;
-                    }
-                    const agentId = id.trim();
-                    const displayName = name?.trim() || undefined;
-                    const workspaceDir = workspace.trim();
-                    if (!agentId || !workspaceDir) {
-                      return;
-                    }
-                    const existingIndex = findAgentIndex(agentId);
-                    const index = existingIndex >= 0 ? existingIndex : ensureAgentIndex(agentId);
-                    if (index < 0) {
-                      return;
-                    }
-                    if (displayName) {
-                      updateConfigFormValue(state, ["agents", "list", index, "name"], displayName);
-                    } else {
-                      removeConfigFormValue(state, ["agents", "list", index, "name"]);
-                    }
-                    updateConfigFormValue(
-                      state,
-                      ["agents", "list", index, "workspace"],
-                      workspaceDir,
-                    );
-                    if (makeDefault) {
-                      updateConfigFormValue(state, ["agents", "defaultId"], agentId);
-                    }
-                    if (binding?.channel.trim() && binding.accountId.trim()) {
-                      upsertExactBinding({
-                        agentId,
-                        channel: binding.channel,
-                        accountId: binding.accountId,
+                  onCreateAgent: async ({ id, name, workspace, makeDefault, binding }) => {
+                    try {
+                      if (!configValue || !state.client || !state.connected) {
+                        throw new Error("Gateway 未连接，无法创建 Agent。");
+                      }
+                      const agentId = id.trim();
+                      const displayName = name?.trim() || undefined;
+                      const workspaceDir = workspace.trim();
+                      if (!agentId || !workspaceDir) {
+                        throw new Error("Agent ID 和工作区路径不能为空。");
+                      }
+                      state.agentsError = null;
+                      requestHostUpdate?.();
+                      await state.client.request("agents.create", {
+                        id: agentId,
+                        name: displayName ?? agentId,
+                        workspace: workspaceDir,
                       });
-                    }
-
-                    const existingAgents = state.agentsList?.agents ?? [];
-                    const existingAgent = existingAgents.find((entry) => entry.id === agentId);
-                    const nextAgent = existingAgent
-                      ? {
-                          ...existingAgent,
-                          ...(displayName ? { name: displayName } : {}),
+                      await loadConfig(state);
+                      if (makeDefault || (binding?.channel.trim() && binding.accountId.trim())) {
+                        if (makeDefault) {
+                          markDefaultAgentInConfig(agentId);
                         }
-                      : {
-                          id: agentId,
-                          ...(displayName ? { name: displayName } : {}),
-                        };
-                    const nextAgents = existingAgent
-                      ? existingAgents.map((entry) => (entry.id === agentId ? nextAgent : entry))
-                      : [...existingAgents, nextAgent];
-
-                    state.agentsList = {
-                      defaultId: makeDefault ? agentId : (state.agentsList?.defaultId ?? agentId),
-                      mainKey: state.agentsList?.mainKey ?? "main",
-                      scope: state.agentsList?.scope ?? "workspace",
-                      agents: nextAgents,
-                    };
-                    state.agentsSelectedId = agentId;
-                    state.agentsPanel = "overview";
-                    state.agentFilesList = null;
-                    state.agentFilesError = null;
-                    state.agentFilesLoading = false;
-                    state.agentFileActive = null;
-                    state.agentFileContents = {};
-                    state.agentFileDrafts = {};
-                    state.agentSkillsReport = null;
-                    state.agentSkillsError = null;
-                    state.agentSkillsLoadingAgentId = null;
-                    state.agentSkillsAgentId = null;
-                    state.toolsCatalogResult = null;
-                    state.toolsCatalogError = null;
-                    state.toolsCatalogLoading = false;
+                        if (binding?.channel.trim() && binding.accountId.trim()) {
+                          upsertExactBinding({
+                            agentId,
+                            channel: binding.channel,
+                            accountId: binding.accountId,
+                          });
+                        }
+                        await saveAgentsConfig(state);
+                      } else {
+                        await loadAgents(state);
+                      }
+                      state.agentsSelectedId = agentId;
+                      resetSelectedAgentPanels();
+                      requestHostUpdate?.();
+                    } catch (err) {
+                      state.agentsError = String(err);
+                      requestHostUpdate?.();
+                      throw err;
+                    }
                   },
                 }),
               )

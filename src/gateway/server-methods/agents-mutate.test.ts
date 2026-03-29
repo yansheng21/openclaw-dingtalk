@@ -280,6 +280,25 @@ describe("agents.create", () => {
     expect(mocks.writeConfigFile).toHaveBeenCalled();
   });
 
+  it("prefers explicit id over normalized display name", async () => {
+    const { respond, promise } = makeCall("agents.create", {
+      id: "xiaowang-pro",
+      name: "小王 Pro",
+      workspace: "/home/user/agents/xiaowang-pro",
+    });
+    await promise;
+
+    expect(respond).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        ok: true,
+        agentId: "xiaowang-pro",
+        name: "小王 Pro",
+      }),
+      undefined,
+    );
+  });
+
   it("ensures workspace is set up before writing config", async () => {
     const callOrder: string[] = [];
     mocks.ensureAgentWorkspace.mockImplementation(async () => {

@@ -1354,19 +1354,23 @@ export const en: TranslationMap = {
     },
     create: {
       title: "Add Agent",
-      subtitle: "Create an isolated workspace first, then bind accounts to it if needed.",
+      subtitle:
+        "Pick channel and account first to auto-fill the Agent ID and workspace, then tweak if needed.",
       idLabel: "Agent ID",
-      idHelp: "Use letters, numbers, dashes, and underscores for routing-safe IDs.",
+      idHelp: "It auto-fills from the selected account, but you can still edit it.",
       nameLabel: "Display name",
-      nameHelp: "Leave blank to fall back to the Agent ID.",
+      nameHelp:
+        "It auto-fills from the selected account; leave blank to fall back to the Agent ID.",
       workspaceLabel: "Workspace path",
-      workspaceHelp: "Each agent should use its own workspace to avoid identity and memory bleed.",
+      workspaceHelp:
+        "It auto-fills from the Agent ID; each agent should still use its own workspace.",
       defaultLabel: "Set as default agent",
       bindingTitle: "Channel account binding (optional)",
       bindingSub:
-        "Bind the new agent to a channel account right away. This works across DingTalk, Feishu, Telegram, and other multi-account channels.",
+        "Start from the channel and account first. This works across DingTalk, Feishu, Telegram, and other multi-account channels.",
       bindingChannelLabel: "Channel",
-      bindingAccountLabel: "Account ID",
+      bindingAccountLabel: "Channel account ID",
+      selectPlaceholder: "Select...",
       bindingHint:
         "If you skip this now, you can still add the route later in Config > bindings. Unbound traffic can still fall back to the default agent.",
       bindingIncomplete: "To create a binding, enter both channel and account ID.",
